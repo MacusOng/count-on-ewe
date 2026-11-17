@@ -113,7 +113,7 @@ the list, and asks for a typed confirmation first.
 - **The October export date is wrong** and is corrected to 22 Oct (Q02).
 - **23 of 35 tags reach the final 13 Nov session** (Pen 1 & 2, then released);
   12 drop out after June/July — likely pens concluded earlier (Q10).
-- **Mite results are not in the PIT data** — they come from the trial emails and
+- **Mite results are not in the PIT data and stay private.** They come from the trial emails and
   live in `data\reported_mite_results.csv`.
 
 ## Next steps

@@ -10,6 +10,16 @@ How to record a change (in this order):
 
 Entry types: Added, Changed, Fixed, Removed.
 
+## 0.5.0 - 2026-11-17
+- Added: **Overview** tab (first tab): trial at a glance, timeline, three colour-coded biosecurity cards
+  (sheep, other wildlife and livestock, staff) with animated ewes and lambs, protective gear by stage,
+  and a short "why we do this" note. Content follows the briefing note.
+- Added: **Key contacts** tab (names, roles and partners only; no emails or phone numbers).
+- Added: trial results stay private. Result cards on the Overview open an "In progress" pop-up. The
+  reported mite results table is read only when run locally (never on the public site) and the file is optional.
+- Changed: the old Overview is now **Dashboard**. Removed the hard-coded results sentence from the mite card.
+- Note: do not copy `reported_mite_results.csv` into `data_public\`.
+
 ## 0.4.1 - 2026-11-16
 - Added: live clock block at the top of the left panel: UTC date and time to the second, plus live
   clocks for Vancouver, São Paulo, London, Johannesburg, Kuala Lumpur, Sydney and McMurdo (one per

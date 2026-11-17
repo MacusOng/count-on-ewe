@@ -32,3 +32,17 @@ test_that("public mode is off locally and on when forced", {
   expect_false(IS_PUBLIC)
   expect_true(identical(Sys.getenv("COE_PUBLIC", "0"), "0"))
 })
+
+test_that("overview + contacts present, results are not in the page", {
+  html <- paste(as.character(ui), collapse = "")
+  expect_true(grepl("Biosecurity", html) && grepl("Key contacts", html) && grepl("Dashboard", html))
+  expect_equal(lengths(regmatches(html, gregexpr('class="bio-card ', html))), 3)
+  expect_true(grepl("lock_ov1", html) && grepl("lock_ov2", html))
+  for (bad in c("~3 months", "5.5 months", "Fluralaner alone", "protection ~")) expect_false(grepl(bad, html, fixed = TRUE))
+  expect_false(grepl("@", gsub("@media", "", html, fixed = TRUE)))   # no email addresses
+  expect_false(grepl("Wade", html) || grepl("Salty", html))           # no meeting points
+})
+
+test_that("mite table is private when public", {
+  expect_true(HAS_MITES == (!IS_PUBLIC && file.exists(MITES_FILE)))
+})

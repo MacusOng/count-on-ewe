@@ -12,7 +12,7 @@
 #              data/manifest.csv. Nothing else to edit.
 # =============================================================================
 
-APP_VERSION <- "0.4.1"          # keep in sync with /VERSION and CHANGELOG.md
+APP_VERSION <- "0.5.0"          # keep in sync with /VERSION and CHANGELOG.md
 APP_STAGE   <- "beta"
 
 # Public mode: true on shinyapps.io (SHINY_PORT / R_CONFIG_ACTIVE=shinyapps) or when COE_PUBLIC=1.
@@ -256,7 +256,12 @@ sessions  <- session_order(ev)
 roster    <- build_roster(ev, DATA_DIR)
 presence  <- presence_matrix(ev)
 qc        <- run_qc(ev, DATA_DIR)
-mites     <- read_csv(file.path(DATA_DIR, "reported_mite_results.csv"), show_col_types = FALSE)
+# Trial results are private: the mite table is read only when running locally and the file exists.
+MITES_FILE <- file.path(DATA_DIR, "reported_mite_results.csv")
+HAS_MITES  <- !IS_PUBLIC && file.exists(MITES_FILE)
+mites <- if (HAS_MITES) read_csv(MITES_FILE, show_col_types = FALSE) else
+  tibble(session = character(), trial_pen = integer(), treatment = character(),
+         n_nonctl_live_mites = integer(), mites_present = logical())
 
 pal_event <- c(Mark = "#1F7A3D", Recapture = "#2E6FB0", `Not detected` = "#D9D4CC")
 sev_col   <- c(high = "#B23A48", medium = "#C58A2E", low = "#4E8A6B", info = "#5B6B7B")
@@ -588,6 +593,65 @@ html[data-anim=off] .ce-banner *{animation-play-state:paused!important}
 .ce-zone .w{font-size:.62rem;color:var(--ce-muted);margin-left:.25rem;font-weight:400}
 .ce-dev{margin-top:.5rem;font-size:.72rem;color:var(--ce-muted);text-align:right;font-style:italic}
 @media (max-width:700px){.ce-zones{grid-template-columns:repeat(2,1fr)}}
+/* ---- overview page ----------------------------------------------------------- */
+.ov{max-width:1180px;margin:0 auto;padding:.25rem .25rem 2rem}
+.ov h3.sec{font-size:1.05rem;font-weight:700;margin:1.6rem 0 .7rem;display:flex;align-items:center;gap:.5rem}
+.ov h3.sec:after{content:"";flex:1;height:1px;background:var(--ce-border)}
+.ov .lead{color:var(--ce-muted);font-size:.9rem;margin:-.3rem 0 .8rem}
+.ov-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:.7rem}
+.ov-stat{background:var(--ce-card);border:1px solid var(--ce-border);border-radius:.75rem;padding:.8rem .9rem}
+.ov-stat .v{font-size:1.5rem;font-weight:700;color:var(--ce-primary);line-height:1.1}.ov-stat .l{font-size:.78rem;color:var(--ce-muted);margin-top:.2rem}
+.ov-tl{display:flex;align-items:flex-start;gap:0;overflow-x:auto;padding:.4rem 0 .2rem}
+.ov-tl .st{flex:1 0 120px;text-align:center;position:relative;padding-top:1.2rem}
+.ov-tl .st:before{content:"";position:absolute;left:0;right:0;top:.45rem;height:2px;background:var(--ce-border)}
+.ov-tl .st:first-child:before{left:50%}.ov-tl .st:last-child:before{right:50%}
+.ov-tl .st:after{content:"";position:absolute;left:calc(50% - 7px);top:0;width:14px;height:14px;border-radius:50%;background:var(--ce-primary);border:3px solid var(--ce-bg)}
+.ov-tl .st.fin:after{background:var(--ce-accent)}.ov-tl .st.nxt:after{background:var(--ce-bg);border:3px solid var(--ce-primary)}
+.ov-tl .d{font-weight:600;font-size:.85rem}.ov-tl .t{font-size:.74rem;color:var(--ce-muted)}
+.bio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.bio-card{--c:#3aa76d;border:2px solid var(--c);border-radius:1rem;overflow:hidden;background:color-mix(in srgb,var(--c) 11%,var(--ce-card));display:flex;flex-direction:column}
+.bio-card.sheep{--c:#3aa76d}.bio-card.wild{--c:#e0a030}.bio-card.staff{--c:#4a90d9}
+.bio-card h4{margin:0;padding:.7rem .95rem .1rem;font-size:1rem;font-weight:700;display:flex;align-items:center;gap:.5rem;color:var(--ce-fg)}
+.bio-card h4 .badge-ico{display:inline-flex;align-items:center;justify-content:center;width:1.8rem;height:1.8rem;border-radius:50%;background:var(--c);color:#fff;font-size:.85rem}
+.bio-card .sub{padding:0 .95rem;font-size:.76rem;color:var(--ce-muted)}
+.bio-card ul{margin:.5rem 0 .6rem;padding:0 .95rem 0 2rem;font-size:.84rem;line-height:1.35;flex:1}
+.bio-card li{margin-bottom:.3rem}.bio-card li::marker{color:var(--c)}
+.bio-scene{position:relative;height:84px;overflow:hidden;background:linear-gradient(color-mix(in srgb,var(--c) 22%,var(--ce-sky2)),color-mix(in srgb,var(--c) 8%,var(--ce-sky2)));border-top:2px solid var(--c)}
+.bio-scene:before{content:"";position:absolute;left:-10%;right:-10%;bottom:-26px;height:52px;border-radius:50%;background:var(--ce-hill1)}
+.bio-scene .animal{bottom:6px;z-index:2}
+.bio-scene .animal.ewe svg{width:54px}.bio-scene .animal.lamb svg{width:34px}.bio-scene .animal.ram svg{width:70px}
+.bio-scene .fence{position:absolute;left:50%;bottom:6px;height:34px;width:3px;margin-left:-1px;background:repeating-linear-gradient(to bottom,var(--ce-fg) 0 5px,transparent 5px 9px);opacity:.55;z-index:1}
+.bio-scene .spray{position:absolute;right:8px;top:6px;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c);background:var(--ce-card);border:1px solid var(--c);border-radius:.6rem;padding:.05rem .45rem;z-index:3}
+html[data-ce-theme=hc] .bio-card{border-width:3px}
+html[data-anim=off] .bio-scene *,html[data-anim=off] .ce-modal-lamb *{animation-play-state:paused!important}
+.ppe{display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem;margin-top:.9rem}
+.ppe .p{background:var(--ce-card);border:1px solid var(--ce-border);border-top:4px solid var(--ce-primary);border-radius:.6rem;padding:.55rem .65rem;font-size:.78rem}
+.ppe .p b{display:block;font-size:.8rem;margin-bottom:.15rem}.ppe .p span{color:var(--ce-muted)}
+.ov-locks{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.ce-lock{position:relative;cursor:pointer;border:2px dashed var(--ce-border);border-radius:1rem;background:var(--ce-card);padding:1rem 1.1rem 5.2rem;min-height:170px;overflow:hidden;text-align:left;color:var(--ce-fg);width:100%;font-family:inherit}
+.ce-lock:hover,.ce-lock:focus-visible{border-color:var(--ce-primary);outline:none}
+.ce-lock .ttl{font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:.5rem}
+.ce-lock .pill{margin-left:auto;font-size:.66rem;letter-spacing:.07em;text-transform:uppercase;background:var(--ce-accent);color:var(--ce-bg);padding:.1rem .5rem;border-radius:1rem;font-weight:700}
+.ce-lock .ghost{position:absolute;left:1.1rem;right:1.1rem;bottom:.9rem;display:flex;align-items:flex-end;gap:.5rem;height:48px;opacity:.28}
+.ce-lock .ghost i{flex:1;border-radius:.3rem .3rem 0 0;background:var(--ce-muted)}
+.ce-lock .hint{font-size:.78rem;color:var(--ce-muted);margin-top:.35rem}
+.ce-lock-sm{min-height:110px;padding-bottom:1rem}
+.people{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+.person{background:var(--ce-card);border:1px solid var(--ce-border);border-radius:1rem;padding:1rem;text-align:center}
+.person .av{width:64px;height:64px;border-radius:50%;margin:0 auto .6rem;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem;background:var(--ce-primary);color:var(--ce-bg)}
+.person .nm{font-weight:700}.person .rl{font-size:.8rem;color:var(--ce-muted);margin-top:.15rem}
+.person .tg{display:inline-block;margin-top:.6rem;font-size:.72rem;border:1px solid var(--ce-primary);color:var(--ce-primary);border-radius:1rem;padding:.1rem .6rem}
+.who{display:grid;grid-template-columns:1fr 1fr;gap:.5rem 1rem}
+.who div{background:var(--ce-card);border:1px solid var(--ce-border);border-radius:.6rem;padding:.55rem .75rem;font-size:.85rem}
+.who b{color:var(--ce-primary)}
+.partners{display:flex;flex-wrap:wrap;gap:.45rem}.partners span{background:var(--ce-card);border:1px solid var(--ce-border);border-radius:1rem;padding:.2rem .75rem;font-size:.82rem}
+.modal-content{background:var(--ce-card);color:var(--ce-fg);border:2px solid var(--ce-primary)}
+.modal-header,.modal-footer{border-color:var(--ce-border)}.btn-close{filter:var(--ce-closefilter,none)}
+html[data-bs-theme=dark] .btn-close{filter:invert(1)}
+.ce-modal-lamb{position:relative;height:70px;margin:.2rem 0 .6rem;overflow:hidden;border-radius:.6rem;background:linear-gradient(var(--ce-sky1),var(--ce-sky2))}
+.ce-modal-lamb:before{content:"";position:absolute;left:-10%;right:-10%;bottom:-24px;height:46px;border-radius:50%;background:var(--ce-hill1)}
+.ce-modal-lamb .animal{bottom:5px;z-index:2}.ce-modal-lamb .animal.lamb svg{width:36px}.ce-modal-lamb .animal.ewe svg{width:54px}
+@media (max-width:900px){.ov-stats,.ppe{grid-template-columns:repeat(2,1fr)}.bio-grid,.ov-locks,.who{grid-template-columns:1fr}.people{grid-template-columns:repeat(2,1fr)}}
 )---"
 
 CE_JS <- r"---(
@@ -757,6 +821,133 @@ sidebar_ui <- sidebar(
     downloadButton("dl_roster", "Tag roster (CSV)", class = "btn-sm btn-outline-primary w-100"))
 )
 
+# =============================================================================
+# OVERVIEW + KEY CONTACTS CONTENT (static, public-safe: no trial results here)
+# =============================================================================
+scene_animal <- function(kind, pose, left, flip = FALSE, delay = 0, dir = 1)
+  sprintf('<div class="animal %s %s%s" style="--d:%ss;--dir:%d;left:%s%%;"><div class="inner">%s</div></div>',
+          kind, pose, if (flip) " flip" else "", delay, dir, left, sheep_svg(kind))
+
+bio_card <- function(cls, ico, title, sub, items, scene)
+  div(class = paste("bio-card", cls),
+    tags$h4(span(class = "badge-ico", icon(ico)), title),
+    div(class = "sub", sub),
+    tags$ul(lapply(items, function(i) tags$li(i))),
+    div(class = "bio-scene", `aria-hidden` = "true", HTML(scene)))
+
+lock_card <- function(id, title, hint, bars, small = FALSE)
+  tags$button(type = "button", class = paste("ce-lock", if (small) "ce-lock-sm"),
+    onclick = sprintf("Shiny.setInputValue('%s', Math.random(), {priority:'event'})", id),
+    div(class = "ttl", icon("lock"), title, span(class = "pill", "In progress")),
+    div(class = "hint", hint),
+    if (!is.null(bars)) div(class = "ghost", `aria-hidden` = "true",
+      lapply(bars, function(h) tags$i(style = sprintf("height:%d%%", h)))))
+
+results_modal <- function() modalDialog(
+  title = tagList(icon("hourglass-half"), " Results in progress"),
+  div(class = "ce-modal-lamb", `aria-hidden` = "true",
+      HTML(paste0(scene_animal("ewe", "graze", 16), scene_animal("lamb", "frolic", 44),
+                  scene_animal("lamb", "frolic", 66, delay = -2)))),
+  p("The trial results are still being worked through with the project team."),
+  p(class = "text-muted small mb-0", "They will appear here once they have been reviewed and approved."),
+  easyClose = TRUE, footer = modalButton("Got it"), size = "m")
+
+ov_stat <- function(v, l) div(class = "ov-stat", div(class = "v", v), div(class = "l", l))
+
+ov_timeline <- function() {
+  st <- list(div(class = "st", div(class = "d", "1 Apr 2026"), div(class = "t", "Sheep treated")))
+  for (i in seq_len(nrow(sessions))) {
+    last <- i == nrow(sessions)
+    st[[length(st) + 1]] <- div(class = paste("st", if (last) "fin"),
+      div(class = "d", sessions$session_label[i]), div(class = "t", if (last) "Final handling" else "Handling session"))
+  }
+  st[[length(st) + 1]] <- div(class = "st nxt", div(class = "d", "Next"), div(class = "t", "Field trial, PIB herd"))
+  div(class = "ov-tl", st)
+}
+
+PPE_STAGES <- list(
+  c("Moving sheep", "Boot covers"),
+  c("Mugging", "Coveralls, gloves, boot covers"),
+  c("Carrying", "Gloves, boot covers"),
+  c("Processing", "New boot covers, coveralls and gloves for every pen"),
+  c("Clean-up", "Dirty laundry bags; boots sprayed with tea tree"))
+
+overview_ui <- div(class = "ov",
+  tags$h3(class = "sec", icon("binoculars"), "The trial at a glance"),
+  div(class = "ov-stats",
+    ov_stat("~36", "Psoroptes-infested sheep in the captive trial"),
+    ov_stat("4", "research enclosures (pens)"),
+    ov_stat("3", "drug options tested, plus controls"),
+    ov_stat(nrow(sessions), "handling sessions in the PIT data"),
+    ov_stat(format(max(sessions$last_date), "%d %b %Y"), "latest handling in the data")),
+
+  tags$h3(class = "sec", icon("route"), "Timeline"),
+  ov_timeline(),
+
+  tags$h3(class = "sec", icon("flask"), "Trial results"),
+  div(class = "lead", "Click a card for the status."),
+  div(class = "ov-locks",
+    lock_card("lock_ov1", "Protection windows", "Time to first live mites for each treatment.", c(35, 55, 80, 62, 90)),
+    lock_card("lock_ov2", "Mite findings by session", "Live mites on treated sheep at each handling.", c(20, 30, 45, 70, 55))),
+
+  tags$h3(class = "sec", icon("shield-halved"), "Biosecurity: how we keep everyone safe"),
+  div(class = "lead", "Psoroptes mites can survive up to 3 weeks off the host, so the care we take today protects sheep we have not met yet."),
+  div(class = "bio-grid",
+    bio_card("sheep", "paw", "Keeping the sheep safe", "Handling is stressful for them",
+      c("Stay calm and quiet. If you are not handling, stay about 40 feet back.",
+        "No petting: it mimics a predator. Keep contact to a minimum.",
+        "Sheep lie on their left side, facing uphill, so they can breathe.",
+        "Body temperature every 3 minutes.",
+        "At most five blood attempts per animal, then hand off.",
+        "Release in open space away from fences, people stepped back. Feed, water and lock gates before leaving."),
+      paste0(scene_animal("ewe", "graze", 8), scene_animal("lamb", "graze", 30, delay = -3),
+             scene_animal("lamb", "frolic", 56), scene_animal("lamb", "frolic", 74, delay = -2.5))),
+    bio_card("wild", "spray-can-sparkles", "Keeping other wildlife and livestock safe", "Stop the mites travelling",
+      c("Tea tree spray on boots, tools, blankets, hobbles and anything set down in a pen.",
+        "New boot covers for every pen; bin them between pens.",
+        "Wash clothes on hot and dry them on hot.",
+        "Will you see other sheep, wild or domestic, in the next 3 weeks? Tell the ONA or BC biologists.",
+        "Spray the bottom of the cooler and all handling equipment before it leaves site."),
+      paste0('<div class="fence"></div><div class="spray">Tea tree</div>', scene_animal("ewe", "graze", 12),
+             scene_animal("lamb", "frolic", 30, delay = -1), scene_animal("ram", "stand", 62))),
+    bio_card("staff", "helmet-safety", "Keeping staff safe", "The mites are not contagious to humans",
+      c("Boot covers for everyone; gloves for anyone handling sheep; coveralls for muggers and for processing.",
+        "New coveralls and gloves for each pen; used ones go in the dirty laundry bags.",
+        "Bring water and lunch; wear light layers under coveralls.",
+        "Read the carrying, chute and restraint protocols beforehand.",
+        "Follow the biologists and vets. Blood and drugs only by qualified people."),
+      paste0(scene_animal("ram", "stand", 8), scene_animal("ewe", "graze", 42, delay = -4),
+             scene_animal("lamb", "frolic", 66, delay = -1.5)))),
+  tags$h4(class = "mt-3 mb-0", style = "font-size:.9rem", "Protective gear by stage"),
+  div(class = "ppe", lapply(PPE_STAGES, function(x) div(class = "p", tags$b(x[1]), span(x[2])))),
+
+  tags$h3(class = "sec", icon("heart"), "Why we do this"),
+  p("Psoroptic mange is a skin disease of California bighorn sheep in the Okanagan, caused by Psoroptes mites. It brings sores, hair loss, crusted ears and poor body condition."),
+  p("The yilíkʷlxkn are relatives with whom the Syilx Nation has shared the tmxʷulaxʷ (land) for thousands of years. This trial looks for treatments that could protect whole herds.")
+)
+
+contacts_ui <- div(class = "ov",
+  tags$h3(class = "sec", icon("address-book"), "Key contacts"),
+  div(class = "people",
+    lapply(list(
+      list("MC", "Mackenzie Clarke", "tmixʷ (Wildlife) Program Lead, ONA", "Project lead"),
+      list("LO", "Levi Oostenbrink", "ONA", "Trial coordination and updates"),
+      list("C",  "Caeley", "Provincial Wildlife Veterinarian", "Drug administration"),
+      list("MO", "Macus Ong", "Fisheries Biologist, ONA", "PIT tagging and data")),
+      function(x) div(class = "person", div(class = "av", x[[1]]), div(class = "nm", x[[2]]),
+                      div(class = "rl", x[[3]]), span(class = "tg", x[[4]])))),
+  tags$h3(class = "sec", icon("circle-question"), "Who to ask about what"),
+  div(class = "who",
+    div(tags$b("The trial overall"), " → Mackenzie Clarke"),
+    div(tags$b("Updates and coordination"), " → Levi Oostenbrink"),
+    div(tags$b("Drug treatment"), " → Caeley, Provincial Wildlife Veterinarian"),
+    div(tags$b("PIT tags and this dashboard"), " → Macus Ong")),
+  tags$h3(class = "sec", icon("handshake"), "Partners"),
+  div(class = "partners", lapply(c("Wild Sheep Society of BC", "BC Ministry staff (WLRS, FOR, ENV)",
+    "Penticton Indian Band", "UBC", "Moredun Research Institute"), span)),
+  div(class = "small text-muted mt-3", "Contact details are shared by the project team on request.")
+)
+
 ui <- page_navbar(
   title = "Count on Ewe", fillable = FALSE, sidebar = sidebar_ui,
   theme = bs_theme(version = 5, primary = "#2E6FB0"),
@@ -773,16 +964,20 @@ ui <- page_navbar(
   nav_spacer(),
   nav_item(span(class = "navbar-text small", sprintf("v%s · %s", APP_VERSION, APP_STAGE))),
 
-  nav_panel("Overview", icon = icon("chart-line"),
+  nav_panel("Overview", icon = icon("house"), overview_ui),
+
+  nav_panel("Dashboard", icon = icon("chart-line"),
     layout_columns(col_widths = c(3,3,3,3), fill = FALSE,
       uiOutput("k_tags"), uiOutput("k_sessions"), uiOutput("k_latest"), uiOutput("k_qc")),
     card(card_header("Detections per session"), plotlyOutput("p_session", height = 300)),
     layout_columns(col_widths = c(7,5),
       card(card_header("Capture history — tag × session"), plotlyOutput("p_heat", height = 460)),
-      card(card_header("Reported mite results (from trial-update emails, not the PIT data)"),
-           DTOutput("t_mites"),
-           div(class = "small text-muted p-2",
-               "Pen 1 (Fluralaner alone): protection ~3 months. Pen 2 (Fluralaner + moxidectin): mite-free 5.5 months, mites by 22 Oct. Pen 1 & 2 released the evening of 13 Nov 2026.")))),
+      if (HAS_MITES)
+        card(card_header("Reported mite results (private: shown only when run locally)"),
+             DTOutput("t_mites"),
+             div(class = "small text-muted p-2", "From the trial-update emails, not the PIT data."))
+      else card(card_header("Trial results"),
+             lock_card("lock_dash", "Mite results", "Click for the status.", NULL, small = TRUE)))),
 
   nav_panel("Tag roster", icon = icon("table-list"),
     card(card_header("One row per individual tag (filtered)"), DTOutput("t_roster"))),
@@ -804,7 +999,9 @@ ui <- page_navbar(
              span(style=paste0("color:",sev_col['medium'],";font-weight:bold"), "medium"), ", ",
              span(style=paste0("color:",sev_col['low'],";font-weight:bold"), "low"), "."),
          DTOutput("t_qc")),
-    card(card_header("Session summary"), DTOutput("t_sessions")))
+    card(card_header("Session summary"), DTOutput("t_sessions"))),
+
+  nav_panel("Key contacts", icon = icon("address-book"), contacts_ui)
 )
 
 # =============================================================================
@@ -813,6 +1010,11 @@ ui <- page_navbar(
 server <- function(input, output, session) {
   th  <- reactive(THEMES[[input$theme_id %||% DEFAULT_THEME]] %||% THEMES[[DEFAULT_THEME]])
   fnt <- reactive({ s <- FONTS$stack[match(input$font_id %||% DEFAULT_FONT, FONTS$id)]; if (is.na(s)) FONTS$stack[1] else s })
+
+  for (id in c("lock_ov1", "lock_ov2", "lock_dash")) local({
+    i <- id
+    observeEvent(input[[i]], showModal(results_modal()), ignoreInit = TRUE)
+  })
 
   # date slider follows the mark year / month
   observeEvent(list(input$m_year, input$m_month), {
