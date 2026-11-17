@@ -122,3 +122,10 @@ the list, and asks for a typed confirmation first.
   per-pen protection-window timeline.
 - Add Pen 1 & 2 release coordinates (and a release map layer) when available.
 - The `.xml` P4 exports migrate to P5 in December 2026 — keep exporting CSV/XLSX.
+
+
+## Left panel (v0.3.0)
+Two columns: **Filters** (pen 1-4, mark year, mark month, scan-date slider that re-fits when the
+year or month changes, event type, sessions) and **Settings** (8 themes, 10 fonts with a pangram
+preview, header animation switch). Theme/font choices are remembered per browser. Fonts load from
+Google Fonts when online and fall back to system fonts offline.

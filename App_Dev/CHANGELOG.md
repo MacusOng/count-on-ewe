@@ -10,6 +10,27 @@ How to record a change (in this order):
 
 Entry types: Added, Changed, Fixed, Removed.
 
+## 0.4.1 - 2026-11-16
+- Added: live clock block at the top of the left panel: UTC date and time to the second, plus live
+  clocks for Vancouver, São Paulo, London, Johannesburg, Kuala Lumpur, Sydney and McMurdo (one per
+  continent), and a "Developed by Macus Ong" line. Runs in the browser, so no server load.
+
+## 0.4.0 - 2026-11-16
+- Added: public mode. On shinyapps.io (or with COE_PUBLIC=1) the CSV download buttons and handlers are
+  removed so visitors can view the dashboard but not save the data. Local runs keep the downloads.
+
+## 0.3.0 - 2026-11-16
+- Added: two-column left panel (Filters | Settings). Filters: pen location (1-4), mark year, mark month,
+  a scan-date range slider that re-fits itself when the mark year or month changes, event type, sessions, reset.
+- Added: 8 themes (Midnight Dark, Contrast, Viridis, Viridis Plasma, Desert Sand, Calm, Forest, High Contrast)
+  and 10 font faces with a pangram preview; choices are remembered in the browser and applied to plots too.
+- Added: 2-inch animated header (ewes and lambs walking and grazing on hill slopes, frolicking lambs, rams
+  at the right end, mountains); sun/moon, stars, clouds, fireflies and animation pace follow the theme.
+  "Animate header" switch pauses it.
+- Changed: raw pen-label filter replaced by the tag-level pen; KPIs, plots, roster, events, map and
+  downloads now respect the filters.
+- Note: 0.2.0 was not released; version jumps from 0.1.0.
+
 ## 0.1.0 - 2026-11-16
 - Added: first working build. Ingests the Jun–Nov 2026 Biomark/P4 handling exports into one
   tidy event table and a per-tag roster; Overview (KPIs, per-session detections, tag × session

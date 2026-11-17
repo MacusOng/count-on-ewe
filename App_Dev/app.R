@@ -12,8 +12,14 @@
 #              data/manifest.csv. Nothing else to edit.
 # =============================================================================
 
-APP_VERSION <- "0.1.0"          # keep in sync with /VERSION and CHANGELOG.md
+APP_VERSION <- "0.4.1"          # keep in sync with /VERSION and CHANGELOG.md
 APP_STAGE   <- "beta"
+
+# Public mode: true on shinyapps.io (SHINY_PORT / R_CONFIG_ACTIVE=shinyapps) or when COE_PUBLIC=1.
+# In public mode the CSV download buttons/handlers are removed so visitors can view
+# the dashboard but not save the underlying data. Locally they stay on.
+IS_PUBLIC <- nzchar(Sys.getenv("SHINY_PORT")) || identical(Sys.getenv("R_CONFIG_ACTIVE"), "shinyapps") ||
+  identical(Sys.getenv("COE_PUBLIC"), "1")
 
 suppressPackageStartupMessages({
   library(shiny); library(bslib); library(dplyr); library(tidyr); library(stringr)
@@ -255,27 +261,517 @@ mites     <- read_csv(file.path(DATA_DIR, "reported_mite_results.csv"), show_col
 pal_event <- c(Mark = "#1F7A3D", Recapture = "#2E6FB0", `Not detected` = "#D9D4CC")
 sev_col   <- c(high = "#B23A48", medium = "#C58A2E", low = "#4E8A6B", info = "#5B6B7B")
 
+
+# =============================================================================
+# THEMES, FONTS, HEADER ART
+# =============================================================================
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
+mk_theme <- function(id, name, mode, sky, ...) list(id = id, name = name, mode = mode, sky = sky, vars = list(...))
+
+THEME_LIST <- list(
+  mk_theme("dark", "Midnight Dark", "dark", "night",
+    bg = "#10151c", card = "#1a212b", fg = "#e7ebf0", muted = "#97a3b2", border = "#2b3544",
+    primary = "#6fb1ff", accent = "#f4c95d", ink = "#ffffff", sky1 = "#070b22", sky2 = "#1d2b5a",
+    m1 = "#2a3868", m2 = "#1b2650", snow = "#9fb2e6", hill1 = "#1c3a37", hill2 = "#12292a",
+    sheep = "#8d7a68", sheepdark = "#55463a", rump = "#e9e2d4", horn = "#cbbfa6", eye = "#f2efe6",
+    sun = "#f4f1de", sunscale = "1", speed = "1.6", hop = "5px",
+    mark = "#5fd38d", recap = "#6fb1ff", none = "#333d4b"),
+  mk_theme("contrast", "Contrast", "light", "day",
+    bg = "#f4f1ea", card = "#ffffff", fg = "#101418", muted = "#4a525c", border = "#2a2f36",
+    primary = "#0a3d91", accent = "#c8102e", ink = "#08203a", sky1 = "#4aa8e8", sky2 = "#d6efff",
+    m1 = "#5a6f8f", m2 = "#37506e", snow = "#ffffff", hill1 = "#3b8f46", hill2 = "#1f6b30",
+    sheep = "#6b4a2e", sheepdark = "#2e1f12", rump = "#fff7e8", horn = "#3b2a1a", eye = "#ffffff",
+    sun = "#ffb400", sunscale = "1", speed = "1", hop = "14px",
+    mark = "#1b7f3b", recap = "#0a3d91", none = "#c9c4b8"),
+  mk_theme("viridis", "Viridis", "light", "day",
+    bg = "#f6f8f5", card = "#ffffff", fg = "#1c2b36", muted = "#53646f", border = "#cfd9d4",
+    primary = "#31688e", accent = "#35b779", ink = "#ffffff", sky1 = "#26828e", sky2 = "#e9f5a3",
+    m1 = "#3b528b", m2 = "#472d7b", snow = "#d8f0b8", hill1 = "#35b779", hill2 = "#1f9e89",
+    sheep = "#6a5240", sheepdark = "#3b2c22", rump = "#fbf7ea", horn = "#5a4b3a", eye = "#ffffff",
+    sun = "#fde725", sunscale = "1", speed = "1", hop = "14px",
+    mark = "#35b779", recap = "#31688e", none = "#d6dad7"),
+  mk_theme("plasma", "Viridis Plasma", "dark", "dusk",
+    bg = "#170a2a", card = "#240f3d", fg = "#fbeedd", muted = "#c7a9c9", border = "#44205f",
+    primary = "#f89540", accent = "#cc4778", ink = "#ffffff", sky1 = "#0d0887", sky2 = "#f89540",
+    m1 = "#7e03a8", m2 = "#4a0a6f", snow = "#f0a2c0", hill1 = "#2b0b4a", hill2 = "#1b0733",
+    sheep = "#a2705b", sheepdark = "#5d3a3d", rump = "#fde0c5", horn = "#f0c27a", eye = "#fde0c5",
+    sun = "#fcce25", sunscale = "1.3", speed = "1.25", hop = "9px",
+    mark = "#fca636", recap = "#cc4778", none = "#4b2a66"),
+  mk_theme("desert", "Desert Sand", "light", "day",
+    bg = "#f3e7d0", card = "#fbf3e1", fg = "#45301c", muted = "#7d6446", border = "#dac49b",
+    primary = "#b5601a", accent = "#a23b2a", ink = "#4a2d12", sky1 = "#f2b872", sky2 = "#fbe6bf",
+    m1 = "#c8845a", m2 = "#a5643f", snow = "#f3e7d0", hill1 = "#dcbb7c", hill2 = "#c49b55",
+    sheep = "#6b4a2f", sheepdark = "#3f2a18", rump = "#fff4de", horn = "#4a3320", eye = "#ffffff",
+    sun = "#ffd24a", sunscale = "1.4", speed = "0.9", hop = "16px",
+    mark = "#7a8f3a", recap = "#b5601a", none = "#d9c9a8"),
+  mk_theme("calm", "Calm", "light", "day",
+    bg = "#edf3f6", card = "#ffffff", fg = "#243847", muted = "#5f7684", border = "#cfdde5",
+    primary = "#4b86a8", accent = "#7fb7a4", ink = "#26485f", sky1 = "#b5d3e8", sky2 = "#eef6fb",
+    m1 = "#9db4c7", m2 = "#7e9bb2", snow = "#ffffff", hill1 = "#a4cfa9", hill2 = "#86bb91",
+    sheep = "#8a6f58", sheepdark = "#5c4a3b", rump = "#fffaf0", horn = "#6d5a48", eye = "#ffffff",
+    sun = "#ffe7a3", sunscale = "1", speed = "1.5", hop = "10px",
+    mark = "#6bb59a", recap = "#4b86a8", none = "#d5e0e6"),
+  mk_theme("forest", "Forest", "dark", "day",
+    bg = "#16231b", card = "#1f3025", fg = "#e2ebdd", muted = "#9fb5a3", border = "#2f4637",
+    primary = "#7ccf8a", accent = "#dcb64a", ink = "#ffffff", sky1 = "#3d7a5a", sky2 = "#bfe0b4",
+    m1 = "#2c5c46", m2 = "#1e4333", snow = "#dfeee0", hill1 = "#2f6e3c", hill2 = "#1f5230",
+    sheep = "#7a6046", sheepdark = "#46352a", rump = "#f1e9d6", horn = "#c8b894", eye = "#f1e9d6",
+    sun = "#fff0a8", sunscale = "0.9", speed = "1.2", hop = "12px",
+    mark = "#7ccf8a", recap = "#5fb0d6", none = "#2f4637"),
+  mk_theme("hc", "High Contrast", "dark", "night",
+    bg = "#000000", card = "#000000", fg = "#ffffff", muted = "#e0e0e0", border = "#ffffff",
+    primary = "#ffe600", accent = "#00e5ff", ink = "#ffffff", sky1 = "#000000", sky2 = "#111111",
+    m1 = "#2a2a2a", m2 = "#555555", snow = "#ffffff", hill1 = "#1a1a1a", hill2 = "#333333",
+    sheep = "#ffffff", sheepdark = "#ffe600", rump = "#ffffff", horn = "#00e5ff", eye = "#000000",
+    sun = "#ffffff", sunscale = "1", speed = "1.6", hop = "5px",
+    mark = "#ffe600", recap = "#00e5ff", none = "#666666")
+)
+THEMES        <- setNames(THEME_LIST, vapply(THEME_LIST, `[[`, "", "id"))
+DEFAULT_THEME <- "calm"
+
+FONTS <- data.frame(
+  id = c("inter","nunito","poppins","atkinson","merriweather","lora","playfair","robotoslab","firacode","patrick"),
+  name = c("Inter","Nunito","Poppins","Atkinson Hyperlegible","Merriweather","Lora","Playfair Display",
+           "Roboto Slab","Fira Code","Patrick Hand"),
+  stack = c("'Inter','Segoe UI',system-ui,-apple-system,Arial,sans-serif",
+            "'Nunito','Trebuchet MS','Segoe UI',Arial,sans-serif",
+            "'Poppins','Century Gothic','Segoe UI',Arial,sans-serif",
+            "'Atkinson Hyperlegible','Verdana',Tahoma,sans-serif",
+            "'Merriweather',Georgia,'Times New Roman',serif",
+            "'Lora','Palatino Linotype',Palatino,Georgia,serif",
+            "'Playfair Display','Bookman Old Style',Georgia,serif",
+            "'Roboto Slab','Rockwell','Courier New',serif",
+            "'Fira Code','Cascadia Mono',Consolas,'Courier New',monospace",
+            "'Patrick Hand','Segoe Print','Comic Sans MS',cursive"),
+  stringsAsFactors = FALSE)
+DEFAULT_FONT <- "inter"
+GOOGLE_FONTS_URL <- paste0("https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Nunito:wght@400;700",
+  "&family=Poppins:wght@400;600&family=Atkinson+Hyperlegible:wght@400;700&family=Merriweather:wght@400;700",
+  "&family=Lora:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto+Slab:wght@400;700",
+  "&family=Fira+Code:wght@400;600&family=Patrick+Hand&display=swap")
+
+PANGRAMS <- c("Sphinx of black quartz, judge my vow.",
+              "The quick brown fox jumps over the lazy dog.",
+              "Pack my box with five dozen liquor jugs 0123456789")
+
+# ---- header geometry (viewBox 1000 x 192; banner is 2 inches = 192 px tall) --
+BANNER_H   <- 192
+hill_front <- function(x) 22 + 13 * sin(2 * pi * (1.25 * x + 0.08)) + 5 * sin(2 * pi * 3.2 * x + 1)
+hill_back  <- function(x) 52 + 16 * sin(2 * pi * (0.8 * x + 0.5)) + 6 * sin(2 * pi * 2.1 * x)
+hill_path  <- function(f, n = 120) {
+  x <- seq(0, 1, length.out = n + 1)
+  pts <- paste(sprintf("%.1f,%.1f", x * 1000, BANNER_H - f(x)), collapse = " L")
+  sprintf("M0,%d L%s L1000,%d Z", BANNER_H, pts, BANNER_H)
+}
+
+sheep_svg <- function(kind = "ewe") {
+  horn <- if (kind == "ram")
+    '<path class="horn" style="stroke-width:3.8" d="M52,12 C43,1 32,10 38,19 C40,23 46,23 47,19"/>'
+  else '<path class="horn" style="stroke-width:2.2" d="M53,12 C52,7 49,6 47,8"/>'
+  leg <- function(cls, x, ox) sprintf(
+    '<g class="leg %s" style="transform-origin:%dpx 30px"><rect x="%d" y="30" width="4" height="15" rx="2"/></g>', cls, ox, x)
+  paste0('<svg class="sheep" viewBox="0 0 70 50" xmlns="http://www.w3.org/2000/svg">',
+    leg("far lb", 13, 15), leg("far lf", 40, 42),
+    '<ellipse class="body" cx="30" cy="25" rx="22" ry="11"/><ellipse class="rump" cx="10" cy="24" rx="6.5" ry="8"/>',
+    leg("near lb", 18, 20), leg("near lf", 45, 47),
+    '<path class="body" d="M44,22 Q50,12 56,13 L58,22 Q52,30 44,30 Z"/>',
+    '<g class="head" style="transform-origin:49px 21px">',
+    '<ellipse class="face" cx="59" cy="17" rx="7" ry="4.8" transform="rotate(18 59 17)"/>',
+    '<ellipse class="muzzle" cx="64.5" cy="19.5" rx="3" ry="2.4"/><circle class="eye" cx="60" cy="15.5" r="1.1"/>',
+    '<ellipse class="ear" cx="54" cy="14" rx="3.2" ry="1.5" transform="rotate(-25 54 14)"/>', horn, '</g></svg>')
+}
+SHEEP_W <- c(ewe = 66, lamb = 40, ram = 86)
+
+animal <- function(kind, pose, x = NULL, flip = FALSE, delay = 0, dir = 1, id = NULL) {
+  s <- SHEEP_W[[kind]] / 70
+  style <- sprintf("--d:%ss;--dir:%d;", delay, dir)
+  if (!is.null(x)) style <- paste0(style, sprintf("left:%.1f%%;bottom:%.1fpx;", x, hill_front(x / 100) - 4 * s))
+  if (!is.null(id)) style <- paste0(style, sprintf("animation-name:%s;animation-delay:calc(var(--ce-speed)*%ss);", id, delay))
+  sprintf('<div class="animal %s %s%s%s" style="%s"><div class="inner">%s</div></div>',
+          kind, pose, if (flip) " flip" else "", if (!is.null(id)) paste0(" ", id) else "", style, sheep_svg(kind))
+}
+
+walker_css <- function(id, kind, x0, x1, dur) {
+  s <- SHEEP_W[[kind]] / 70; n <- 10
+  fx <- seq(x0, x1, length.out = n + 1)
+  fw <- sprintf("%.1f%%{left:%.2f%%;bottom:%.1fpx;transform:scaleX(1)}", seq(0, 48, length.out = n + 1), fx, hill_front(fx / 100) - 4 * s)
+  rw <- sprintf("%.1f%%{left:%.2f%%;bottom:%.1fpx;transform:scaleX(-1)}", seq(50, 98, length.out = n + 1), rev(fx), hill_front(rev(fx) / 100) - 4 * s)
+  paste0("@keyframes ", id, "{", paste(fw, collapse = ""), paste(rw, collapse = ""),
+         sprintf("100%%{left:%.2f%%;bottom:%.1fpx;transform:scaleX(1)}", x0, hill_front(x0 / 100) - 4 * s), "}",
+         ".animal.", id, "{animation-duration:calc(", dur, "s*var(--ce-speed));animation-timing-function:linear;animation-iteration-count:infinite}")
+}
+
+# animals: ewes + lambs on the left/middle, rams on the right
+WALKERS <- list(
+  list(id = "wk1", kind = "ewe",  x0 = 3,  x1 = 30, dur = 80, delay = 0),
+  list(id = "wk2", kind = "lamb", x0 = 3,  x1 = 30, dur = 80, delay = -3.5),
+  list(id = "wk3", kind = "ewe",  x0 = 47, x1 = 63, dur = 70, delay = -35),
+  list(id = "wk4", kind = "lamb", x0 = 47, x1 = 63, dur = 70, delay = -38.5))
+
+banner_animals <- function() {
+  w <- lapply(WALKERS, function(a) animal(a$kind, "walk", id = a$id, delay = a$delay))
+  st <- c(
+    animal("ewe",  "graze",  x = 34),
+    animal("lamb", "frolic", x = 40, delay = -1),
+    animal("lamb", "frolic", x = 44.5, delay = -4.5),
+    animal("ram",  "graze",  x = 70),
+    animal("ram",  "butt",   x = 79, dir = 1),
+    animal("ram",  "butt",   x = 85, flip = TRUE, dir = -1, delay = 0),
+    animal("ram",  "stand",  x = 91, flip = TRUE))
+  paste(c(unlist(w), st), collapse = "\n")
+}
+
+banner_css <- paste(vapply(WALKERS, function(a) walker_css(a$id, a$kind, a$x0, a$x1, a$dur), ""), collapse = "\n")
+
+set.seed(7)
+STARS <- paste(sprintf('<i class="star" style="left:%.1f%%;top:%dpx;animation-delay:-%.1fs;--sz:%.1fpx"></i>',
+  runif(26, 1, 99), sample(6:105, 26, replace = TRUE), runif(26, 0, 6), sample(c(1.5, 2, 2.5, 3), 26, replace = TRUE)), collapse = "")
+FIREFLIES <- paste(sprintf('<i class="ff" style="left:%.1f%%;bottom:%dpx;animation-delay:-%.1fs"></i>',
+  runif(9, 3, 97), sample(14:60, 9, replace = TRUE), runif(9, 0, 8)), collapse = "")
+
+banner_html <- function() {
+  rays <- paste(sprintf('<line x1="40" y1="40" x2="%.2f" y2="%.2f"/>', 40 + 36 * cos(seq(0, 2*pi, length.out = 13)[-13]),
+                        40 + 36 * sin(seq(0, 2*pi, length.out = 13)[-13])), collapse = "")
+  HTML(paste0(
+  '<div class="ce-banner" role="img" aria-label="Animated header: bighorn ewes, lambs and rams on a mountain slope">',
+  '<div class="ce-sky"></div>',
+  '<div class="ce-stars">', STARS, '</div>',
+  '<div class="ce-clouds"><div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div></div>',
+  '<div class="ce-orb sun"><svg viewBox="0 0 80 80"><g class="rays">', rays, '</g><circle cx="40" cy="40" r="17"/></svg></div>',
+  '<div class="ce-orb moon"><svg viewBox="0 0 80 80"><defs><mask id="ce-moonmask"><rect width="80" height="80" fill="#fff"/>',
+  '<circle cx="50" cy="34" r="17" fill="#000"/></mask></defs><circle cx="38" cy="42" r="19" mask="url(#ce-moonmask)"/></svg></div>',
+  '<svg class="ce-bg" viewBox="0 0 1000 192" preserveAspectRatio="none" aria-hidden="true">',
+  '<path class="m1" d="M0,192 L0,120 L90,70 L150,100 L240,40 L330,105 L420,60 L520,110 L610,50 L700,100 L790,35 L880,95 L1000,60 L1000,192 Z"/>',
+  '<g class="snow"><path d="M90,70 L74,86 L84,83 L90,92 L98,82 L106,86 Z"/><path d="M240,40 L220,64 L232,59 L240,70 L250,58 L262,64 Z"/>',
+  '<path d="M420,60 L404,78 L414,75 L421,84 L429,74 L438,79 Z"/><path d="M610,50 L591,72 L603,67 L611,78 L620,66 L631,72 Z"/>',
+  '<path d="M790,35 L768,62 L781,56 L790,69 L800,55 L813,62 Z"/></g>',
+  '<path class="m2" d="M0,192 L0,140 L110,95 L200,130 L300,85 L400,135 L520,100 L640,138 L760,92 L880,130 L1000,105 L1000,192 Z"/>',
+  '<path class="h1" d="', hill_path(hill_back), '"/>',
+  '<path class="h2" d="', hill_path(hill_front), '"/></svg>',
+  '<div class="ce-fireflies">', FIREFLIES, '</div>',
+  banner_animals(),
+  '<div class="ce-title"><h1>Count on Ewe</h1><span>PIT-tag counts &middot; California bighorn Psoroptes trial</span></div>',
+  '</div>'))
+}
+
+# =============================================================================
+# CSS + JS (theme engine runs client-side; the server only needs the ids)
+# =============================================================================
+CE_CSS <- r"---(
+html[data-bs-theme]{--bs-body-bg:var(--ce-bg);--bs-body-color:var(--ce-fg);--bs-border-color:var(--ce-border);
+  --bs-primary:var(--ce-primary);--bs-link-color:var(--ce-primary);--bs-secondary-color:var(--ce-muted);
+  --bs-body-font-family:var(--ce-font);--bs-emphasis-color:var(--ce-fg);--bs-tertiary-bg:var(--ce-card);}
+html,body{background:var(--ce-bg)!important;color:var(--ce-fg);font-family:var(--ce-font);transition:background .4s,color .4s}
+button,input,select,textarea,.btn,.form-control,.form-select,.selectize-input,.selectize-dropdown,.nav-link,.dataTables_wrapper{font-family:var(--ce-font)}
+.navbar{background:var(--ce-card)!important;border-bottom:1px solid var(--ce-border)}
+.navbar .navbar-brand,.navbar .nav-link{color:var(--ce-muted)!important}
+.navbar .nav-link.active,.navbar .nav-link:hover{color:var(--ce-primary)!important}
+.navbar .navbar-text{color:var(--ce-muted)!important}
+.card,.bslib-card{background:var(--ce-card)!important;color:var(--ce-fg);border:1px solid var(--ce-border)}
+.card-header{background:transparent!important;border-bottom:1px solid var(--ce-border);color:var(--ce-fg);font-weight:600}
+.bslib-sidebar-layout{--_sidebar-bg:var(--ce-card);--_sidebar-fg:var(--ce-fg);--_border-color:var(--ce-border)}
+.bslib-sidebar-layout>.sidebar{background:var(--ce-card)!important;color:var(--ce-fg)}
+.text-muted,.help-block,.form-text{color:var(--ce-muted)!important}
+.ce-kpi{background:var(--ce-card);border:1px solid var(--ce-border);border-radius:.75rem;padding:1rem;height:100%}
+.ce-kpi .v{font-size:1.7rem;font-weight:600;color:var(--ce-primary)}.ce-kpi .l{font-size:.85rem;color:var(--ce-muted)}
+.form-control,.form-select,.selectize-input,.selectize-dropdown,.selectize-input input{background:var(--ce-bg)!important;color:var(--ce-fg)!important;border-color:var(--ce-border)!important}
+.selectize-dropdown .active{background:var(--ce-primary)!important;color:var(--ce-bg)!important}
+.selectize-control.multi .selectize-input>div{background:var(--ce-primary);color:var(--ce-bg)}
+.form-check-input:checked{background-color:var(--ce-primary);border-color:var(--ce-primary)}
+.irs--shiny .irs-line{background:var(--ce-border);border-color:var(--ce-border)}
+.irs--shiny .irs-bar{background:var(--ce-primary);border-color:var(--ce-primary)}
+.irs--shiny .irs-handle{background:var(--ce-bg);border:2px solid var(--ce-primary);box-shadow:none}
+.irs--shiny .irs-from,.irs--shiny .irs-to,.irs--shiny .irs-single{background:var(--ce-primary);color:var(--ce-bg);font-size:10px}
+.irs--shiny .irs-min,.irs--shiny .irs-max{background:transparent;color:var(--ce-muted)}
+.irs--shiny .irs-grid-text{color:var(--ce-muted)}
+.btn-outline-primary,.btn-primary{--bs-btn-color:var(--ce-primary);--bs-btn-border-color:var(--ce-primary);--bs-btn-bg:transparent;
+  --bs-btn-hover-bg:var(--ce-primary);--bs-btn-hover-color:var(--ce-bg);--bs-btn-hover-border-color:var(--ce-primary);
+  --bs-btn-active-bg:var(--ce-primary);--bs-btn-active-color:var(--ce-bg);--bs-btn-active-border-color:var(--ce-primary)}
+.table{--bs-table-bg:transparent;--bs-table-color:var(--ce-fg);--bs-table-border-color:var(--ce-border);--bs-table-striped-bg:rgba(127,127,127,.08);--bs-table-hover-bg:rgba(127,127,127,.14)}
+table.dataTable tbody tr,table.dataTable thead th{background:transparent!important;color:var(--ce-fg)!important}
+.dataTables_wrapper,.dataTables_wrapper .dataTables_info,.dataTables_wrapper .dataTables_length,.dataTables_wrapper .dataTables_filter{color:var(--ce-fg)!important}
+.dataTables_wrapper .paginate_button{color:var(--ce-fg)!important}
+.dataTables_wrapper .paginate_button.current{background:var(--ce-primary)!important;color:var(--ce-bg)!important;border-color:var(--ce-primary)!important}
+.page-link{background:var(--ce-card);color:var(--ce-fg);border-color:var(--ce-border)}.page-item.active .page-link{background:var(--ce-primary);color:var(--ce-bg);border-color:var(--ce-primary)}
+
+/* ---- sidebar: two columns ------------------------------------------------ */
+.ce-two{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.ce-two h6{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ce-primary);margin:0 0 .6rem;border-bottom:1px solid var(--ce-border);padding-bottom:.35rem}
+.ce-two .form-group,.ce-two .shiny-input-container{margin-bottom:.6rem}
+.ce-two label.control-label{font-size:.78rem;color:var(--ce-muted);margin-bottom:.15rem}
+.ce-two .irs{font-size:11px}
+.ce-sw-grid{display:grid;grid-template-columns:1fr 1fr;gap:.35rem}
+.ce-sw{border:2px solid var(--ce-border);background:var(--ce-bg);color:var(--ce-fg);border-radius:.5rem;padding:.3rem .35rem;font-size:.72rem;display:flex;align-items:center;gap:.35rem;cursor:pointer;text-align:left;line-height:1.1}
+.ce-sw:hover{border-color:var(--ce-primary)}.ce-sw.on{border-color:var(--ce-primary);box-shadow:0 0 0 1px var(--ce-primary)}
+.ce-sw i{display:inline-block;flex:0 0 22px;height:22px;border-radius:50%;border:1px solid rgba(127,127,127,.5)}
+.ce-fontsel{width:100%;font-size:.85rem}
+.ce-preview{margin-top:.6rem;border:1px dashed var(--ce-border);border-radius:.5rem;padding:.55rem .65rem;background:var(--ce-bg)}
+.ce-preview .p1{font-size:1.05rem;font-weight:600;color:var(--ce-primary);line-height:1.25}
+.ce-preview .p2{font-size:.88rem;margin-top:.25rem}.ce-preview .p3{font-size:.75rem;color:var(--ce-muted);margin-top:.25rem}
+.ce-preview .meta{font-size:.65rem;color:var(--ce-muted);margin-top:.3rem;text-transform:uppercase;letter-spacing:.06em}
+
+/* ---- animated header (2 inches tall) -------------------------------------- */
+.ce-banner{position:relative;width:100%;height:2in;min-height:192px;overflow:hidden;border-bottom:1px solid var(--ce-border);isolation:isolate}
+.ce-sky{position:absolute;inset:0;background:linear-gradient(var(--ce-sky1),var(--ce-sky2));transition:background .6s}
+.ce-bg{position:absolute;left:0;bottom:0;width:100%;height:192px}
+.ce-bg .m1{fill:var(--ce-m1)}.ce-bg .m2{fill:var(--ce-m2)}.ce-bg .snow path{fill:var(--ce-snow)}
+.ce-bg .h1{fill:var(--ce-hill1);filter:brightness(1.12)}.ce-bg .h2{fill:var(--ce-hill2)}.ce-bg path{transition:fill .6s}
+html[data-ce-theme=hc] .ce-bg path{stroke:#fff;stroke-width:1.4;vector-effect:non-scaling-stroke}
+.ce-title{position:absolute;left:18px;top:10px;z-index:5;color:var(--ce-ink);text-shadow:0 1px 6px rgba(0,0,0,.25);pointer-events:none}
+.ce-title h1{margin:0;font-size:1.7rem;font-weight:700;line-height:1.1;letter-spacing:.01em}
+.ce-title span{font-size:.78rem;opacity:.9}
+.ce-orb{position:absolute;z-index:1;display:none;width:calc(64px*var(--ce-sunscale))}
+.ce-orb svg{width:100%;height:auto;overflow:visible}
+.ce-orb.sun{right:15%;top:12px}.ce-orb.sun circle{fill:var(--ce-sun);filter:drop-shadow(0 0 8px var(--ce-sun))}
+.ce-orb.sun .rays{stroke:var(--ce-sun);stroke-width:3;stroke-linecap:round;opacity:.85;transform-origin:40px 40px;animation:spin calc(40s*var(--ce-speed)) linear infinite}
+.ce-orb.moon{right:17%;top:10px;animation:floaty calc(9s*var(--ce-speed)) ease-in-out infinite}.ce-orb.moon circle{fill:#f6f1d4}.ce-orb.moon svg{filter:drop-shadow(0 0 9px rgba(255,248,200,.8))}
+html[data-ce-theme=hc] .ce-orb.moon circle{fill:#fff}
+html[data-sky=day] .ce-orb.sun,html[data-sky=dusk] .ce-orb.sun,html[data-sky=night] .ce-orb.moon{display:block}
+html[data-sky=dusk] .ce-orb.sun{top:78px;right:22%;animation:sunset calc(30s*var(--ce-speed)) ease-in-out infinite alternate}
+.ce-stars,.ce-clouds,.ce-fireflies{position:absolute;inset:0;pointer-events:none;z-index:1}
+.ce-stars,.ce-fireflies{display:none}.ce-fireflies{z-index:4}
+html[data-sky=night] .ce-stars,html[data-sky=night] .ce-fireflies{display:block}
+html[data-sky=night] .ce-clouds{display:none}
+.star{position:absolute;width:var(--sz);height:var(--sz);background:#fff;border-radius:50%;animation:twinkle calc(3s*var(--ce-speed)) ease-in-out infinite}
+.ff{position:absolute;width:4px;height:4px;border-radius:50%;background:#ffe86b;box-shadow:0 0 8px 3px rgba(255,232,107,.7);animation:ffly calc(9s*var(--ce-speed)) ease-in-out infinite}
+.cloud{position:absolute;height:14px;width:64px;border-radius:14px;background:rgba(255,255,255,.85);animation:drift linear infinite}
+.cloud:before,.cloud:after{content:"";position:absolute;background:inherit;border-radius:50%}
+.cloud:before{width:26px;height:26px;left:10px;top:-13px}.cloud:after{width:20px;height:20px;left:32px;top:-9px}
+.cloud.c1{top:26px;animation-duration:calc(120s*var(--ce-speed))}.cloud.c2{top:58px;transform:scale(.7);animation-duration:calc(170s*var(--ce-speed));animation-delay:-60s}
+.cloud.c3{top:18px;transform:scale(.55);animation-duration:calc(200s*var(--ce-speed));animation-delay:-120s}
+html[data-sky=dusk] .cloud{background:rgba(255,200,170,.45)}
+.animal{position:absolute;z-index:3;pointer-events:none}
+.animal .inner{transform-origin:50% 100%}
+.animal.flip svg{transform:scaleX(-1)}
+.animal.ewe svg{width:66px;display:block}.animal.lamb svg{width:40px;display:block}.animal.ram svg{width:86px;display:block}
+.sheep .body{fill:var(--ce-sheep)}.sheep .rump{fill:var(--ce-rump)}.sheep .face{fill:var(--ce-sheepdark)}.sheep .ear{fill:var(--ce-sheepdark)}
+.sheep .muzzle{fill:var(--ce-rump)}.sheep .eye{fill:var(--ce-eye)}.sheep .horn{fill:none;stroke:var(--ce-horn);stroke-linecap:round}
+.sheep .leg rect{fill:var(--ce-sheepdark)}.sheep .leg.far rect{opacity:.7}
+html[data-ce-theme=hc] .sheep .body,html[data-ce-theme=hc] .sheep .face{stroke:#000;stroke-width:.6}
+.animal.walk .inner{animation:bob calc(.9s*var(--ce-speed)) ease-in-out infinite}
+.animal.walk .leg.near.lb,.animal.walk .leg.far.lf,.animal.frolic .leg.near.lb,.animal.frolic .leg.far.lf{animation:swing calc(.9s*var(--ce-speed)) ease-in-out infinite}
+.animal.walk .leg.near.lf,.animal.walk .leg.far.lb,.animal.frolic .leg.near.lf,.animal.frolic .leg.far.lb{animation:swing calc(.9s*var(--ce-speed)) ease-in-out infinite;animation-delay:calc(var(--ce-speed)*-.45s)}
+.animal.frolic .leg{animation-duration:calc(.5s*var(--ce-speed))!important}
+.animal.walk .head{animation:headbob calc(.9s*var(--ce-speed)) ease-in-out infinite}
+.animal.graze .head{animation:graze calc(11s*var(--ce-speed)) ease-in-out infinite;animation-delay:var(--d,0s)}
+.animal.stand .head{animation:nod calc(6s*var(--ce-speed)) ease-in-out infinite}
+.animal.frolic .inner{animation:frolic calc(5s*var(--ce-speed)) ease-in-out infinite;animation-delay:calc(var(--ce-speed)*var(--d,0s))}
+.animal.butt .inner{animation:lunge calc(7s*var(--ce-speed)) ease-in-out infinite;animation-delay:calc(var(--ce-speed)*var(--d,0s))}
+.animal.butt .head{animation:butthead calc(7s*var(--ce-speed)) ease-in-out infinite}
+@keyframes swing{0%,100%{transform:rotate(-24deg)}50%{transform:rotate(24deg)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+@keyframes headbob{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(3deg)}}
+@keyframes graze{0%,4%{transform:rotate(50deg)}10%{transform:rotate(58deg)}16%{transform:rotate(50deg)}22%{transform:rotate(58deg)}28%{transform:rotate(50deg)}56%{transform:rotate(50deg)}66%,84%{transform:rotate(-4deg)}94%,100%{transform:rotate(50deg)}}
+@keyframes nod{0%,100%{transform:rotate(0)}50%{transform:rotate(6deg)}}
+@keyframes frolic{0%,100%{transform:translate(0,0) rotate(0)}10%{transform:translate(4px,calc(var(--ce-hop)*-1)) rotate(-14deg)}20%{transform:translate(8px,0) rotate(0)}32%{transform:translate(13px,calc(var(--ce-hop)*-1.3)) rotate(12deg)}44%{transform:translate(18px,0) rotate(0)}60%{transform:translate(18px,0)}70%{transform:translate(10px,calc(var(--ce-hop)*-1)) rotate(-10deg)}82%{transform:translate(2px,0) rotate(0)}}
+@keyframes lunge{0%,70%,100%{transform:translateX(0)}78%{transform:translateX(calc(10px*var(--dir,1)))}84%{transform:translateX(0)}}
+@keyframes butthead{0%,70%,100%{transform:rotate(0)}74%{transform:rotate(-16deg)}78%{transform:rotate(14deg)}86%{transform:rotate(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
+@keyframes sunset{from{transform:translateY(0)}to{transform:translateY(22px)}}
+@keyframes twinkle{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+@keyframes ffly{0%,100%{transform:translate(0,0);opacity:.2}25%{transform:translate(16px,-10px);opacity:1}50%{transform:translate(4px,-20px);opacity:.4}75%{transform:translate(-14px,-8px);opacity:1}}
+@keyframes drift{from{left:-12%}to{left:108%}}
+html[data-anim=off] .ce-banner *{animation-play-state:paused!important}
+@media (prefers-reduced-motion:reduce){.ce-banner *{animation-play-state:paused!important}}
+@media (max-width:700px){.ce-title h1{font-size:1.25rem}.ce-title span{display:none}.ce-two{grid-template-columns:1fr}}
+/* ---- live clocks ------------------------------------------------------------ */
+.ce-clock{border:1px solid var(--ce-border);border-radius:.6rem;background:var(--ce-bg);padding:.6rem .75rem;margin-bottom:.9rem}
+.ce-utc{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;border-bottom:1px solid var(--ce-border);padding-bottom:.45rem;margin-bottom:.45rem}
+.ce-utc .lab{font-size:.7rem;letter-spacing:.12em;color:var(--ce-bg);background:var(--ce-primary);border-radius:.3rem;padding:.05rem .4rem;font-weight:700}
+.ce-utc .t{font-size:1.55rem;font-weight:700;color:var(--ce-primary);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.ce-utc .d{font-size:.85rem;color:var(--ce-muted);font-variant-numeric:tabular-nums}
+.ce-zones{display:grid;grid-template-columns:repeat(4,1fr);gap:.3rem .6rem}
+.ce-zone{line-height:1.15}.ce-zone .c{font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ce-muted)}
+.ce-zone .n{font-size:.74rem}.ce-zone .z{font-size:.95rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ce-fg)}
+.ce-zone .w{font-size:.62rem;color:var(--ce-muted);margin-left:.25rem;font-weight:400}
+.ce-dev{margin-top:.5rem;font-size:.72rem;color:var(--ce-muted);text-align:right;font-style:italic}
+@media (max-width:700px){.ce-zones{grid-template-columns:repeat(2,1fr)}}
+)---"
+
+CE_JS <- r"---(
+(function(){
+  var T = window.CE_THEMES, F = window.CE_FONTS, store = {};
+  try { store = window.localStorage; } catch(e) { store = {}; }
+  function get(k, d){ try { return store.getItem(k) || d; } catch(e){ return d; } }
+  function put(k, v){ try { store.setItem(k, v); } catch(e){} }
+  var cur = {theme: get('ce_theme', window.CE_DEFAULT_THEME), font: get('ce_font', window.CE_DEFAULT_FONT), anim: get('ce_anim', 'on')};
+  function byId(arr, id){ for (var i=0;i<arr.length;i++) if (arr[i].id===id) return arr[i]; return arr[0]; }
+  function applyTheme(id, fromUser){
+    var t = byId(T, id), r = document.documentElement;
+    Object.keys(t.vars).forEach(function(k){ r.style.setProperty('--ce-'+k, t.vars[k]); });
+    r.setAttribute('data-sky', t.sky); r.setAttribute('data-bs-theme', t.mode); r.setAttribute('data-ce-theme', t.id);
+    document.querySelectorAll('.ce-sw').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-id')===t.id); });
+    cur.theme = t.id; put('ce_theme', t.id); sync('theme_id', t.id);
+  }
+  function applyFont(id){
+    var f = byId(F, id), r = document.documentElement;
+    r.style.setProperty('--ce-font', f.stack);
+    var pv = document.getElementById('ce-preview'); if (pv) { pv.style.fontFamily = f.stack; pv.querySelector('.meta').textContent = f.name; }
+    var sel = document.getElementById('ce-fontsel'); if (sel) sel.value = f.id;
+    cur.font = f.id; put('ce_font', f.id); sync('font_id', f.id);
+  }
+  function applyAnim(on){
+    document.documentElement.setAttribute('data-anim', on ? 'on' : 'off');
+    var cb = document.getElementById('ce-anim'); if (cb) cb.checked = on;
+    cur.anim = on ? 'on' : 'off'; put('ce_anim', cur.anim);
+  }
+  var ready = false, pending = {};
+  function sync(name, v){ if (ready && window.Shiny) Shiny.setInputValue(name, v); else pending[name] = v; }
+  document.addEventListener('DOMContentLoaded', function(){
+    var b = document.querySelector('.ce-banner'), nav = document.querySelector('nav.navbar');
+    if (b && nav && nav.parentNode) nav.parentNode.insertBefore(b, nav);
+    applyTheme(cur.theme); applyFont(cur.font); applyAnim(cur.anim === 'on');
+  });
+  document.addEventListener('click', function(e){
+    var s = e.target.closest && e.target.closest('.ce-sw'); if (s) applyTheme(s.getAttribute('data-id'), true);
+  });
+  document.addEventListener('change', function(e){
+    if (e.target.id === 'ce-fontsel') applyFont(e.target.value);
+    if (e.target.id === 'ce-anim') applyAnim(e.target.checked);
+  });
+  $(document).on('shiny:connected', function(){
+    ready = true; Object.keys(pending).forEach(function(k){ Shiny.setInputValue(k, pending[k]); });
+  });
+  // apply early (before DOMContentLoaded) to avoid a flash
+  applyTheme(cur.theme);
+})();
+)---"
+
+CLOCK_JS <- r"---(
+(function(){
+  var zones = Array.prototype.slice.call(document.querySelectorAll('.ce-zone'));
+  var fmt = {};
+  function f(tz){ return fmt[tz] || (fmt[tz] = new Intl.DateTimeFormat('en-GB', {timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, weekday: 'short'})); }
+  function tick(){
+    var now = new Date(), iso = now.toISOString();
+    var u = document.getElementById('ce-utc-t'), d = document.getElementById('ce-utc-d');
+    if (u) u.textContent = iso.slice(11, 19);
+    if (d) d.textContent = iso.slice(0, 10) + ' \u00b7 ' + ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getUTCDay()];
+    document.querySelectorAll('.ce-zone').forEach(function(el){
+      var parts = f(el.getAttribute('data-tz')).formatToParts(now), o = {};
+      parts.forEach(function(p){ o[p.type] = p.value; });
+      el.querySelector('.z').firstChild.nodeValue = o.hour + ':' + o.minute + ':' + o.second;
+      el.querySelector('.w').textContent = o.weekday;
+    });
+  }
+  function start(){ tick(); setTimeout(function(){ tick(); setInterval(tick, 1000); }, 1000 - (Date.now() % 1000)); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+)---"
+
+CLOCK_ZONES <- data.frame(
+  continent = c("N. America", "S. America", "Europe", "Africa", "Asia", "Oceania", "Antarctica"),
+  city      = c("Vancouver", "S\u00e3o Paulo", "London", "Johannesburg", "Kuala Lumpur", "Sydney", "McMurdo"),
+  tz        = c("America/Vancouver", "America/Sao_Paulo", "Europe/London", "Africa/Johannesburg",
+                "Asia/Kuala_Lumpur", "Australia/Sydney", "Antarctica/McMurdo"),
+  stringsAsFactors = FALSE)
+
+clock_ui <- div(class = "ce-clock",
+  div(class = "ce-utc", span(class = "lab", "UTC"), span(id = "ce-utc-t", class = "t", "--:--:--"),
+      span(id = "ce-utc-d", class = "d")),
+  div(class = "ce-zones",
+    lapply(seq_len(nrow(CLOCK_ZONES)), function(i) div(class = "ce-zone", `data-tz` = CLOCK_ZONES$tz[i],
+      div(class = "c", CLOCK_ZONES$continent[i]), div(class = "n", CLOCK_ZONES$city[i]),
+      div(class = "z", "--:--:--", span(class = "w"))))),
+  div(class = "ce-dev", "Developed by Macus Ong"))
+
+# =============================================================================
+# FILTER LOOKUPS (tag-level pen + mark cohort)
+# =============================================================================
+tagmeta <- roster |>
+  transmute(tag, pen = str_extract(pen_assignment, "[0-9]")) |>
+  left_join(
+    ev |> filter(event_type == "Mark") |> group_by(tag) |>
+      summarise(mark_date = min(event_date), .groups = "drop"),
+    by = "tag") |>
+  mutate(mark_year = year(mark_date), mark_month = month(mark_date))
+ev2 <- ev |> left_join(select(tagmeta, tag, pen, mark_date, mark_year, mark_month), by = "tag")
+
+DATE_MIN <- min(ev2$event_date); DATE_MAX <- max(ev2$event_date)
+YEAR_CHOICES <- c("All years" = "All",
+                  setNames(as.character(sort(unique(na.omit(tagmeta$mark_year)))),
+                           sort(unique(na.omit(tagmeta$mark_year)))),
+                  "Not marked in data" = "Unknown")
+MONTH_CHOICES <- c("All months" = "all", setNames(as.character(1:12), month.name))
+
+cohort_filter <- function(d, yr, mo) {
+  if (identical(yr, "Unknown")) return(filter(d, is.na(mark_year)))
+  if (!identical(yr, "All")) d <- filter(d, mark_year == as.integer(yr))
+  if (!identical(mo, "all")) d <- filter(d, mark_month == as.integer(mo))
+  d
+}
+
 # =============================================================================
 # UI
 # =============================================================================
-kpi <- function(value, label) div(class = "border rounded-3 p-3 h-100 bg-white",
-  div(class = "fs-3 fw-semibold", value), div(class = "text-muted small", label))
+kpi <- function(value, label) div(class = "ce-kpi", div(class = "v", value), div(class = "l", label))
+
+theme_buttons <- lapply(THEMES, function(t) {
+  v <- t$vars
+  tags$button(type = "button", class = "ce-sw", `data-id` = t$id,
+    tags$i(style = sprintf("background:linear-gradient(135deg,%s 0 50%%,%s 50%% 100%%)", v$sky1, v$primary)),
+    t$name)
+})
+
+font_select <- tags$select(id = "ce-fontsel", class = "form-select form-select-sm ce-fontsel",
+  lapply(seq_len(nrow(FONTS)), function(i)
+    tags$option(value = FONTS$id[i], style = paste0("font-family:", FONTS$stack[i]), FONTS$name[i])))
+
+sidebar_ui <- sidebar(
+  width = 560, open = "desktop",
+  clock_ui,
+  div(class = "ce-two",
+    div(
+      tags$h6("Filters"),
+      checkboxGroupInput("pens", "Pen location", choices = 1:4, selected = 1:4, inline = TRUE),
+      selectInput("m_year", "Mark year", YEAR_CHOICES, selected = "All"),
+      selectInput("m_month", "Mark month", MONTH_CHOICES, selected = "all"),
+      sliderInput("dates", "Date range (scan date)", min = DATE_MIN, max = DATE_MAX,
+                  value = c(DATE_MIN, DATE_MAX), timeFormat = "%d %b %y", width = "100%"),
+      radioButtons("etype", "Event type", c("All", "Mark", "Recapture"), inline = TRUE),
+      selectInput("sessions", "Sessions", choices = levels(sessions$session),
+                  selected = levels(sessions$session), multiple = TRUE),
+      actionButton("reset", "Reset filters", class = "btn-sm btn-outline-primary w-100")
+    ),
+    div(
+      tags$h6("Settings"),
+      tags$label(class = "control-label small", "Theme"),
+      div(class = "ce-sw-grid mb-2", unname(theme_buttons)),
+      tags$label(class = "control-label small", "Font face"),
+      font_select,
+      div(id = "ce-preview", class = "ce-preview",
+          div(class = "p1", PANGRAMS[1]), div(class = "p2", PANGRAMS[2]), div(class = "p3", PANGRAMS[3]),
+          div(class = "meta", "Inter")),
+      div(class = "form-check form-switch mt-2",
+          tags$input(class = "form-check-input", type = "checkbox", id = "ce-anim", checked = NA),
+          tags$label(class = "form-check-label small", `for` = "ce-anim", "Animate header"))
+    )
+  ),
+  hr(),
+  helpText(HTML("Four independent pens, one treatment each, no migration. <b>Pen</b> = the tag's provisional pen (first record) unless set in <code>data/tag_treatment.csv</code>. <b>Mark year/month</b> = when the tag's Mark event was logged; tags first seen as recaptures are under <i>Not marked in data</i>. Choosing a year or month re-fits the date slider.")),
+  if (IS_PUBLIC) div(class = "small text-muted", "Data downloads are disabled on the public site.")
+  else layout_columns(col_widths = c(6, 6),
+    downloadButton("dl_events", "Tidy events (CSV)", class = "btn-sm btn-outline-primary w-100"),
+    downloadButton("dl_roster", "Tag roster (CSV)", class = "btn-sm btn-outline-primary w-100"))
+)
 
 ui <- page_navbar(
-  title = "Count on Ewe", theme = bs_theme(version = 5, primary = "#2E6FB0"), fillable = FALSE,
+  title = "Count on Ewe", fillable = FALSE, sidebar = sidebar_ui,
+  theme = bs_theme(version = 5, primary = "#2E6FB0"),
+  header = tagList(
+    tags$head(
+      tags$link(rel = "preconnect", href = "https://fonts.googleapis.com"),
+      tags$link(rel = "stylesheet", href = GOOGLE_FONTS_URL),
+      tags$script(HTML(sprintf("window.CE_THEMES=%s;window.CE_FONTS=%s;window.CE_DEFAULT_THEME='%s';window.CE_DEFAULT_FONT='%s';",
+        jsonlite::toJSON(unname(THEMES), auto_unbox = TRUE), jsonlite::toJSON(FONTS, auto_unbox = TRUE),
+        DEFAULT_THEME, DEFAULT_FONT))),
+      tags$script(HTML(CE_JS)), tags$script(HTML(CLOCK_JS)),
+      tags$style(HTML(CE_CSS)), tags$style(HTML(banner_css))),
+    banner_html()),
   nav_spacer(),
-  nav_item(span(class = "navbar-text small text-muted", sprintf("v%s · %s", APP_VERSION, APP_STAGE))),
-  sidebar = sidebar(
-    width = 270,
-    selectInput("sessions", "Sessions", choices = levels(sessions$session),
-                selected = levels(sessions$session), multiple = TRUE),
-    selectInput("pen", "Pen label (raw)", choices = c("All", sort(unique(na.omit(ev$pen_label)))), selected = "All"),
-    radioButtons("etype", "Event type", c("All", "Mark", "Recapture"), inline = TRUE),
-    hr(),
-    helpText(HTML("Four independent pens, one treatment each, no migration. Raw pen labels are reused across sessions &mdash; see <b>Data Quality</b>. Confirm the true pen per tag in <code>data/tag_treatment.csv</code>.")),
-    downloadButton("dl_events", "Tidy events (CSV)", class = "btn-sm btn-outline-primary w-100 mb-2"),
-    downloadButton("dl_roster", "Tag roster (CSV)", class = "btn-sm btn-outline-primary w-100")
-  ),
+  nav_item(span(class = "navbar-text small", sprintf("v%s · %s", APP_VERSION, APP_STAGE))),
 
   nav_panel("Overview", icon = icon("chart-line"),
     layout_columns(col_widths = c(3,3,3,3), fill = FALSE,
@@ -289,7 +785,7 @@ ui <- page_navbar(
                "Pen 1 (Fluralaner alone): protection ~3 months. Pen 2 (Fluralaner + moxidectin): mite-free 5.5 months, mites by 22 Oct. Pen 1 & 2 released the evening of 13 Nov 2026.")))),
 
   nav_panel("Tag roster", icon = icon("table-list"),
-    card(card_header("One row per individual tag"), DTOutput("t_roster"))),
+    card(card_header("One row per individual tag (filtered)"), DTOutput("t_roster"))),
 
   nav_panel("Capture histories", icon = icon("clock-rotate-left"),
     card(card_header("Scan events"), DTOutput("t_events"))),
@@ -315,60 +811,100 @@ ui <- page_navbar(
 # SERVER
 # =============================================================================
 server <- function(input, output, session) {
+  th  <- reactive(THEMES[[input$theme_id %||% DEFAULT_THEME]] %||% THEMES[[DEFAULT_THEME]])
+  fnt <- reactive({ s <- FONTS$stack[match(input$font_id %||% DEFAULT_FONT, FONTS$id)]; if (is.na(s)) FONTS$stack[1] else s })
+
+  # date slider follows the mark year / month
+  observeEvent(list(input$m_year, input$m_month), {
+    req(input$m_year, input$m_month)
+    d <- cohort_filter(ev2, input$m_year, input$m_month)
+    rng <- if (nrow(d)) range(d$event_date) else c(DATE_MIN, DATE_MAX)
+    updateSliderInput(session, "dates", min = rng[1], max = rng[2], value = rng)
+  })
+
+  observeEvent(input$reset, {
+    updateCheckboxGroupInput(session, "pens", selected = 1:4)
+    updateSelectInput(session, "m_year", selected = "All")
+    updateSelectInput(session, "m_month", selected = "all")
+    updateSelectInput(session, "sessions", selected = levels(sessions$session))
+    updateRadioButtons(session, "etype", selected = "All")
+    updateSliderInput(session, "dates", min = DATE_MIN, max = DATE_MAX, value = c(DATE_MIN, DATE_MAX))
+  })
+
   filt <- reactive({
-    d <- ev |> filter(session %in% input$sessions)
-    if (input$pen != "All")   d <- filter(d, pen_label == input$pen)
+    req(input$dates, input$m_year, input$m_month)
+    d <- ev2 |> filter(session %in% input$sessions, pen %in% input$pens,
+                       event_date >= input$dates[1], event_date <= input$dates[2])
+    d <- cohort_filter(d, input$m_year, input$m_month)
     if (input$etype != "All") d <- filter(d, event_type == input$etype)
     d
   })
   last_ses <- tail(levels(sessions$session), 1)
 
-  output$k_tags     <- renderUI(kpi(n_distinct(ev$tag), "Distinct tags (all sessions)"))
-  output$k_sessions <- renderUI(kpi(nrow(sessions), "Handling sessions"))
-  output$k_latest   <- renderUI(kpi(sum(roster$last_session == last_ses), paste("Detected at", last_ses)))
+  pal <- reactive({ v <- th()$vars; c(Mark = v$mark, Recapture = v$recap, `Not detected` = v$none) })
+  gg_theme <- reactive({
+    v <- th()$vars
+    theme_minimal(base_size = 12) + theme(
+      text = element_text(colour = v$fg), axis.text = element_text(colour = v$muted),
+      panel.grid = element_line(colour = v$border, linewidth = 0.25),
+      plot.background = element_rect(fill = NA, colour = NA), panel.background = element_rect(fill = NA, colour = NA),
+      legend.text = element_text(colour = v$fg))
+  })
+  style_plotly <- function(p) {
+    v <- th()$vars
+    p |> layout(paper_bgcolor = "rgba(0,0,0,0)", plot_bgcolor = "rgba(0,0,0,0)",
+                font = list(color = v$fg, family = fnt()), legend = list(orientation = "h"))
+  }
+
+  output$k_tags     <- renderUI(kpi(n_distinct(filt()$tag), sprintf("Tags in current filter (of %d)", n_distinct(ev$tag))))
+  output$k_sessions <- renderUI(kpi(n_distinct(filt()$session), sprintf("Sessions in filter (of %d)", nrow(sessions))))
+  output$k_latest   <- renderUI(kpi(sum(roster$last_session == last_ses & roster$tag %in% filt()$tag), paste("Filtered tags detected at", last_ses)))
   output$k_qc       <- renderUI(kpi(sum(qc$severity %in% c("high","medium") & qc$n > 0), "Open data-quality flags"))
 
   output$p_session <- renderPlotly({
-    d <- filt() |> count(session, event_type) |>
-      mutate(session = factor(session, levels = levels(sessions$session)))
+    d <- filt(); validate(need(nrow(d) > 0, "No scans match the current filters."))
+    d <- d |> count(session, event_type) |> mutate(session = factor(session, levels = levels(sessions$session)))
     g <- ggplot(d, aes(session, n, fill = event_type, text = paste0(session, "<br>", event_type, ": ", n))) +
-      geom_col() + scale_fill_manual(values = pal_event, name = NULL) +
-      labs(x = NULL, y = "Scans") + theme_minimal(base_size = 12)
-    ggplotly(g, tooltip = "text") |> layout(legend = list(orientation = "h"))
+      geom_col() + scale_fill_manual(values = pal(), name = NULL) + labs(x = NULL, y = "Scans") + gg_theme()
+    style_plotly(ggplotly(g, tooltip = "text"))
   })
 
   output$p_heat <- renderPlotly({
+    keep <- unique(filt()$tag); validate(need(length(keep) > 0, "No tags match the current filters."))
     lv <- levels(sessions$session)
-    d <- presence |> filter(tag %in% filt()$tag) |>
+    d <- presence |> filter(tag %in% keep) |>
       mutate(session = factor(session, levels = lv), tag = factor(tag, levels = rev(roster$tag)))
     g <- ggplot(d, aes(session, tag, fill = event_type, text = paste0(tag, "<br>", session, ": ", event_type))) +
-      geom_tile(colour = "white", linewidth = 0.4) +
-      scale_fill_manual(values = pal_event, name = NULL) +
-      labs(x = NULL, y = NULL) + theme_minimal(base_size = 9) + theme(axis.text.y = element_text(size = 6))
-    ggplotly(g, tooltip = "text")
+      geom_tile(colour = th()$vars$card, linewidth = 0.4) +
+      scale_fill_manual(values = pal(), name = NULL) + labs(x = NULL, y = NULL) +
+      gg_theme() + theme(axis.text.y = element_text(size = 6))
+    style_plotly(ggplotly(g, tooltip = "text"))
   })
 
   output$t_mites <- renderDT(datatable(
     mites |> select(session, trial_pen, treatment, n_nonctl_live_mites, mites_present),
     rownames = FALSE, options = list(dom = "t", pageLength = 10)))
 
-  output$t_roster <- renderDT(datatable(
-    roster |> select(tag, dec, pen_assignment, pen_source, first_session, last_session, last_seen,
-                     n_sessions, sessions, pen_labels_seen, status, retagged_in_dataset),
-    rownames = FALSE, filter = "top", options = list(pageLength = 15, scrollX = TRUE)))
+  output$t_roster <- renderDT({
+    keep <- unique(filt()$tag)
+    datatable(roster |> filter(tag %in% keep) |>
+        select(tag, dec, pen_assignment, pen_source, first_session, last_session, last_seen,
+               n_sessions, sessions, pen_labels_seen, status, retagged_in_dataset),
+      rownames = FALSE, filter = "top", options = list(pageLength = 15, scrollX = TRUE))
+  })
 
   output$t_events <- renderDT(datatable(
     filt() |> arrange(event_dt) |>
-      select(session, event_date, tag, dec = dec_calc, event_type, pen_label, life_stage,
+      select(session, event_date, tag, dec = dec_calc, event_type, pen_label, pen, life_stage,
              retagged = retag, pregnant, file),
     rownames = FALSE, filter = "top", options = list(pageLength = 20, scrollX = TRUE)))
 
-  pts <- reactive(ev |> filter(!is.na(lat)) |>
+  pts <- reactive(filt() |> filter(!is.na(lat)) |>
       group_by(session, pen_label, lat, lon) |> summarise(n = n(), .groups = "drop"))
   if (HAS_LEAFLET) {
     output$map <- renderLeaflet({
       leaflet(pts()) |> addProviderTiles(providers$Esri.WorldImagery) |>
-        addCircleMarkers(~lon, ~lat, radius = ~pmax(5, sqrt(n) * 3), color = "#F4C430",
+        addCircleMarkers(~lon, ~lat, radius = ~pmax(5, sqrt(n) * 3), color = th()$vars$accent,
                          fillOpacity = 0.7, stroke = TRUE, weight = 1,
                          popup = ~paste0(session, " — Pen ", pen_label, "<br>", n, " scans<br>", round(lat,5), ", ", round(lon,5)))
     })
@@ -384,10 +920,12 @@ server <- function(input, output, session) {
 
   output$t_sessions <- renderDT(datatable(sessions, rownames = FALSE, options = list(dom = "t")))
 
-  output$dl_events <- downloadHandler("count_on_ewe_events.csv",
-    function(f) write_csv(ev |> select(session, event_date, tag, dec_calc, event_type, pen_label, life_stage, retag, pregnant, lat, lon, file), f))
-  output$dl_roster <- downloadHandler("count_on_ewe_roster.csv",
-    function(f) write_csv(roster, f))
+  if (!IS_PUBLIC) {
+    output$dl_events <- downloadHandler("count_on_ewe_events.csv",
+      function(f) write_csv(filt() |> select(session, event_date, tag, dec_calc, event_type, pen_label, pen, life_stage, retag, pregnant, lat, lon, file), f))
+    output$dl_roster <- downloadHandler("count_on_ewe_roster.csv",
+      function(f) write_csv(roster |> filter(tag %in% filt()$tag), f))
+  }
 }
 
 shinyApp(ui, server)
