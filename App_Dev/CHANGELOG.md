@@ -10,6 +10,13 @@ How to record a change (in this order):
 
 Entry types: Added, Changed, Fixed, Removed.
 
+## 0.7.0 - 2026-11-17
+- Added: soft synthesized sounds (Web Audio, no files): a gentle tick on clicks and a two-note chime on
+  tab changes. A "Soft sounds" switch in Settings turns them off; the choice is remembered per browser.
+- Added: "Mobile version not available yet" notice in the header.
+- Changed: Levi Oostenbrink is listed as tmixʷ (Wildlife) Biologist, ONA.
+- Removed: the "Animate header" switch (the header always animates; reduced-motion settings still pause it).
+
 ## 0.6.0 - 2026-11-17
 - Added: original bighorn sheep headshot avatars on the Key contacts cards, replacing the initials.
   Each has its own look (curls, glasses, stethoscope, beanie with a fish badge); the eyes blink and

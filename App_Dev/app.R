@@ -12,7 +12,7 @@
 #              data/manifest.csv. Nothing else to edit.
 # =============================================================================
 
-APP_VERSION <- "0.6.0"          # keep in sync with /VERSION and CHANGELOG.md
+APP_VERSION <- "0.7.0"          # keep in sync with /VERSION and CHANGELOG.md
 APP_STAGE   <- "beta"
 
 # Public mode: true on shinyapps.io (SHINY_PORT / R_CONFIG_ACTIVE=shinyapps) or when COE_PUBLIC=1.
@@ -456,6 +456,7 @@ banner_html <- function() {
   '<path class="h2" d="', hill_path(hill_front), '"/></svg>',
   '<div class="ce-fireflies">', FIREFLIES, '</div>',
   banner_animals(),
+  '<div class="ce-mobile-note">Mobile version not available yet</div>',
   '<div class="ce-title"><h1>Count on Ewe</h1><span>PIT-tag counts &middot; California bighorn Psoroptes trial</span></div>',
   '</div>'))
 }
@@ -661,6 +662,9 @@ html[data-bs-theme=dark] .btn-close{filter:invert(1)}
 .ce-modal-lamb:before{content:"";position:absolute;left:-10%;right:-10%;bottom:-24px;height:46px;border-radius:50%;background:var(--ce-hill1)}
 .ce-modal-lamb .animal{bottom:5px;z-index:2}.ce-modal-lamb .animal.lamb svg{width:36px}.ce-modal-lamb .animal.ewe svg{width:54px}
 @media (max-width:900px){.ov-stats,.ppe{grid-template-columns:repeat(2,1fr)}.bio-grid,.ov-locks,.who{grid-template-columns:1fr}.people{grid-template-columns:repeat(2,1fr)}}
+.ce-mobile-note{position:absolute;right:12px;top:8px;z-index:6;font-size:.72rem;font-weight:600;color:var(--ce-fg);background:color-mix(in srgb,var(--ce-card) 88%,transparent);border:1px solid var(--ce-border);border-radius:1rem;padding:.15rem .7rem;pointer-events:none}
+.ce-mobile-note:before{content:"\1F4F1\00a0"}
+@media (max-width:700px){.ce-mobile-note{left:18px;right:auto;top:auto;bottom:8px}}
 )---"
 
 CE_JS <- r"---(
@@ -669,7 +673,7 @@ CE_JS <- r"---(
   try { store = window.localStorage; } catch(e) { store = {}; }
   function get(k, d){ try { return store.getItem(k) || d; } catch(e){ return d; } }
   function put(k, v){ try { store.setItem(k, v); } catch(e){} }
-  var cur = {theme: get('ce_theme', window.CE_DEFAULT_THEME), font: get('ce_font', window.CE_DEFAULT_FONT), anim: get('ce_anim', 'on')};
+  var cur = {theme: get('ce_theme', window.CE_DEFAULT_THEME), font: get('ce_font', window.CE_DEFAULT_FONT), anim: 'on'};
   function byId(arr, id){ for (var i=0;i<arr.length;i++) if (arr[i].id===id) return arr[i]; return arr[0]; }
   function applyTheme(id, fromUser){
     var t = byId(T, id), r = document.documentElement;
@@ -709,6 +713,50 @@ CE_JS <- r"---(
   });
   // apply early (before DOMContentLoaded) to avoid a flash
   applyTheme(cur.theme);
+})();
+)---"
+
+SOUND_JS <- r"---(
+(function(){
+  var ctx = null, last = 0, store = {};
+  try { store = window.localStorage; } catch(e) { store = {}; }
+  function isOn(){ try { return (store.getItem('ce_sound') || 'on') === 'on'; } catch(e) { return true; } }
+  function setOn(v){ try { store.setItem('ce_sound', v ? 'on' : 'off'); } catch(e) {} }
+  function ac(){
+    if (!ctx) { var C = window.AudioContext || window.webkitAudioContext; if (!C) return null; try { ctx = new C(); } catch(e) { return null; } }
+    if (ctx.state === 'suspended') { try { ctx.resume(); } catch(e) {} }
+    return ctx;
+  }
+  function tone(freq, at, dur, gain, glide){
+    var c = ac(); if (!c) return;
+    var o = c.createOscillator(), g = c.createGain(), t = c.currentTime + at;
+    o.type = 'sine'; o.frequency.setValueAtTime(freq, t);
+    if (glide) o.frequency.exponentialRampToValueAtTime(freq * glide, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function play(kind){
+    if (!isOn()) return;
+    var n = Date.now(); if (n - last < 60) return; last = n;
+    if (kind === 'chime') { tone(784, 0, 0.55, 0.045); tone(1175, 0.09, 0.65, 0.035); }
+    else { tone(660, 0, 0.09, 0.035, 1.25); }
+  }
+  document.addEventListener('click', function(e){
+    var t = e.target; if (!t || !t.closest) return;
+    var el = t.closest('a.nav-link,[data-bs-toggle=tab],button,.btn,.ce-sw,.ce-lock,input[type=checkbox],input[type=radio],label.form-check-label,.selectize-input,.selectize-dropdown .option,.irs-handle,.page-link,.paginate_button');
+    if (!el) return;
+    if (el.id === 'ce-sound' || (el.getAttribute && el.getAttribute('for') === 'ce-sound')) return;
+    var tab = el.matches('a.nav-link,[data-bs-toggle=tab]') && el.closest('.navbar');
+    play(tab ? 'chime' : 'tick');
+  }, true);
+  document.addEventListener('change', function(e){
+    if (e.target && e.target.id === 'ce-sound') { setOn(e.target.checked); if (e.target.checked) play('tick'); }
+  });
+  document.addEventListener('DOMContentLoaded', function(){
+    var cb = document.getElementById('ce-sound'); if (cb) cb.checked = isOn();
+  });
 })();
 )---"
 
@@ -818,8 +866,8 @@ sidebar_ui <- sidebar(
           div(class = "p1", PANGRAMS[1]), div(class = "p2", PANGRAMS[2]), div(class = "p3", PANGRAMS[3]),
           div(class = "meta", "Inter")),
       div(class = "form-check form-switch mt-2",
-          tags$input(class = "form-check-input", type = "checkbox", id = "ce-anim", checked = NA),
-          tags$label(class = "form-check-label small", `for` = "ce-anim", "Animate header"))
+          tags$input(class = "form-check-input", type = "checkbox", id = "ce-sound", checked = NA),
+          tags$label(class = "form-check-label small", `for` = "ce-sound", "Soft sounds"))
     )
   ),
   hr(),
@@ -972,7 +1020,7 @@ contacts_ui <- div(class = "ov",
   div(class = "people",
     lapply(list(
       list("mackenzie", "Mackenzie Clarke", "tmixʷ (Wildlife) Program Lead, ONA", "Project lead"),
-      list("levi", "Levi Oostenbrink", "ONA", "Trial coordination and updates"),
+      list("levi", "Levi Oostenbrink", "tmix\u02b7 (Wildlife) Biologist, ONA", "Trial coordination and updates"),
       list("caeley", "Caeley", "Provincial Wildlife Veterinarian", "Drug administration"),
       list("macus", "Macus Ong", "Fisheries Biologist, ONA", "PIT tagging and data")),
       function(x) div(class = "person", div(class = "av", HTML(avatar_svg(x[[1]]))), div(class = "nm", x[[2]]),
@@ -999,7 +1047,7 @@ ui <- page_navbar(
       tags$script(HTML(sprintf("window.CE_THEMES=%s;window.CE_FONTS=%s;window.CE_DEFAULT_THEME='%s';window.CE_DEFAULT_FONT='%s';",
         jsonlite::toJSON(unname(THEMES), auto_unbox = TRUE), jsonlite::toJSON(FONTS, auto_unbox = TRUE),
         DEFAULT_THEME, DEFAULT_FONT))),
-      tags$script(HTML(CE_JS)), tags$script(HTML(CLOCK_JS)),
+      tags$script(HTML(CE_JS)), tags$script(HTML(CLOCK_JS)), tags$script(HTML(SOUND_JS)),
       tags$style(HTML(CE_CSS)), tags$style(HTML(banner_css))),
     banner_html()),
   nav_spacer(),

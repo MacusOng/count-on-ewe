@@ -53,3 +53,11 @@ test_that("contacts use sheep avatars", {
   expect_equal(lengths(regmatches(html, gregexpr('aria-label="Bighorn sheep avatar"', html))), 4)
   expect_false(grepl('<div class="av">MC<', html, fixed = TRUE))
 })
+
+test_that("v0.7.0 UI changes", {
+  html <- paste(as.character(ui), collapse = "")
+  expect_false(grepl("Animate header", html, fixed = TRUE))
+  expect_true(grepl("Mobile version not available yet", html, fixed = TRUE))
+  expect_true(grepl('id="ce-sound"', html, fixed = TRUE))
+  expect_true(grepl("Wildlife) Biologist, ONA", html, fixed = TRUE))
+})
