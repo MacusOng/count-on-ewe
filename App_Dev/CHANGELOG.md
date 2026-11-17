@@ -10,6 +10,11 @@ How to record a change (in this order):
 
 Entry types: Added, Changed, Fixed, Removed.
 
+## 0.6.0 - 2026-11-17
+- Added: original bighorn sheep headshot avatars on the Key contacts cards, replacing the initials.
+  Each has its own look (curls, glasses, stethoscope, beanie with a fish badge); the eyes blink and
+  the ears flick on hover. Drawn as inline SVG, so no image files are needed.
+
 ## 0.5.0 - 2026-11-17
 - Added: **Overview** tab (first tab): trial at a glance, timeline, three colour-coded biosecurity cards
   (sheep, other wildlife and livestock, staff) with animated ewes and lambs, protective gear by stage,

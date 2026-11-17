@@ -46,3 +46,10 @@ test_that("overview + contacts present, results are not in the page", {
 test_that("mite table is private when public", {
   expect_true(HAS_MITES == (!IS_PUBLIC && file.exists(MITES_FILE)))
 })
+
+test_that("contacts use sheep avatars", {
+  html <- paste(as.character(ui), collapse = "")
+  expect_equal(lengths(regmatches(html, gregexpr('class="av"', html))), 4)
+  expect_equal(lengths(regmatches(html, gregexpr('aria-label="Bighorn sheep avatar"', html))), 4)
+  expect_false(grepl('<div class="av">MC<', html, fixed = TRUE))
+})

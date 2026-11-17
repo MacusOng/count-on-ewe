@@ -12,7 +12,7 @@
 #              data/manifest.csv. Nothing else to edit.
 # =============================================================================
 
-APP_VERSION <- "0.5.0"          # keep in sync with /VERSION and CHANGELOG.md
+APP_VERSION <- "0.6.0"          # keep in sync with /VERSION and CHANGELOG.md
 APP_STAGE   <- "beta"
 
 # Public mode: true on shinyapps.io (SHINY_PORT / R_CONFIG_ACTIVE=shinyapps) or when COE_PUBLIC=1.
@@ -638,7 +638,16 @@ html[data-anim=off] .bio-scene *,html[data-anim=off] .ce-modal-lamb *{animation-
 .ce-lock-sm{min-height:110px;padding-bottom:1rem}
 .people{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
 .person{background:var(--ce-card);border:1px solid var(--ce-border);border-radius:1rem;padding:1rem;text-align:center}
-.person .av{width:64px;height:64px;border-radius:50%;margin:0 auto .6rem;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem;background:var(--ce-primary);color:var(--ce-bg)}
+.person .av{width:96px;height:96px;margin:0 auto .5rem;display:block}.person .av svg{width:100%;height:100%;overflow:visible}
+.av-bg{fill:color-mix(in srgb,var(--ce-primary) 22%,var(--ce-card));stroke:var(--ce-primary);stroke-width:2.5}
+.av .eye{transform-box:fill-box;transform-origin:center;animation:blink 5.5s infinite}
+.av .ear{transform-box:fill-box;transform-origin:80% 80%}.av .ear.r{transform-origin:20% 80%}
+.person:hover .av .ear.l{animation:earl .6s ease-in-out}.person:hover .av .ear.r{animation:earr .6s ease-in-out .15s}
+.person:hover .av svg{transform:translateY(-2px);transition:transform .2s}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes earl{0%,100%{transform:rotate(0)}40%{transform:rotate(-18deg)}70%{transform:rotate(6deg)}}
+@keyframes earr{0%,100%{transform:rotate(0)}40%{transform:rotate(18deg)}70%{transform:rotate(-6deg)}}
+html[data-anim=off] .av *{animation-play-state:paused!important}
 .person .nm{font-weight:700}.person .rl{font-size:.8rem;color:var(--ce-muted);margin-top:.15rem}
 .person .tg{display:inline-block;margin-top:.6rem;font-size:.72rem;border:1px solid var(--ce-primary);color:var(--ce-primary);border-radius:1rem;padding:.1rem .6rem}
 .who{display:grid;grid-template-columns:1fr 1fr;gap:.5rem 1rem}
@@ -926,15 +935,47 @@ overview_ui <- div(class = "ov",
   p("The yilíkʷlxkn are relatives with whom the Syilx Nation has shared the tmxʷulaxʷ (land) for thousands of years. This trial looks for treatments that could protect whole herds.")
 )
 
+# Original bighorn headshot avatars (inline SVG, fixed natural colours so they read in every theme)
+avatar_svg <- function(who) {
+  horn <- function(d, wo, wi) sprintf(
+    '<path d="%s" fill="none" stroke="#8d7a55" stroke-width="%s" stroke-linecap="round"/><path d="%s" fill="none" stroke="#e6d6b0" stroke-width="%s" stroke-linecap="round"/>', d, wo, d, wi)
+  both <- function(x) paste0(x, '<g transform="translate(100 0) scale(-1 1)">', x, '</g>')
+  big   <- both(horn("M38,42 C21,27 6,38 11,57 C14,69 28,68 32,60 C34,54 30,49 25,52", 9, 6))
+  mid   <- both(horn("M38,42 C26,31 13,37 15,50 C16,59 26,59 28,53", 8, 5.2))
+  small <- both(horn("M39,41 C34,31 28,29 24,34", 5, 3))
+  horns <- switch(who, mackenzie = big, levi = mid, caeley = small, macus = mid)
+  acc <- switch(who,
+    mackenzie = '<path d="M30,82 L70,82 L50,100 Z" fill="#3aa76d"/><circle cx="42" cy="86" r="1.3" fill="#fff"/><circle cx="50" cy="91" r="1.3" fill="#fff"/><circle cx="58" cy="86" r="1.3" fill="#fff"/>',
+    levi = '<circle cx="40" cy="52" r="7.2" fill="#ffffff" fill-opacity=".25" stroke="#3b2c22" stroke-width="1.8"/><circle cx="60" cy="52" r="7.2" fill="#ffffff" fill-opacity=".25" stroke="#3b2c22" stroke-width="1.8"/><path d="M47.2,52 L52.8,52" stroke="#3b2c22" stroke-width="1.8"/>',
+    caeley = '<path d="M36,82 C30,97 44,103 50,96 C56,103 70,97 64,82" fill="none" stroke="#4b5563" stroke-width="2.4" stroke-linecap="round"/><circle cx="50" cy="97" r="3.6" fill="#cbd5e1" stroke="#4b5563" stroke-width="1.6"/>',
+    macus = '<path d="M31,43 C29,22 71,22 69,43 Z" fill="#4a90d9"/><rect x="30" y="39" width="40" height="7" rx="3.5" fill="#e0a030"/><circle cx="50" cy="21" r="4.6" fill="#e0a030"/><g transform="translate(60 91)"><ellipse rx="7" ry="3.8" fill="#e0a030"/><path d="M6,0 L11,-4 L11,4 Z" fill="#e0a030"/><circle cx="-3.5" cy="-.7" r=".9" fill="#3b2c22"/></g>')
+  delay <- c(mackenzie = 0, levi = -1.7, caeley = -3.2, macus = -4.6)[[who]]
+  cid <- paste0("avc-", who)
+  paste0('<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bighorn sheep avatar">',
+    '<defs><clipPath id="', cid, '"><circle cx="50" cy="50" r="50"/></clipPath></defs>',
+    '<circle class="av-bg" cx="50" cy="50" r="48"/><g clip-path="url(#', cid, ')">',
+    '<path d="M12,100 C12,86 30,80 50,80 C70,80 88,86 88,100 Z" fill="#8a6a4f"/><ellipse cx="50" cy="93" rx="19" ry="9" fill="#efe4d0"/>',
+    horns,
+    '<g class="ear l"><ellipse cx="28" cy="46" rx="9.5" ry="4.6" transform="rotate(-32 28 46)" fill="#8a6a4f"/><ellipse cx="29" cy="46" rx="5.5" ry="2.4" transform="rotate(-32 29 46)" fill="#d6a58f"/></g>',
+    '<g class="ear r"><ellipse cx="72" cy="46" rx="9.5" ry="4.6" transform="rotate(32 72 46)" fill="#8a6a4f"/><ellipse cx="71" cy="46" rx="5.5" ry="2.4" transform="rotate(32 71 46)" fill="#d6a58f"/></g>',
+    '<path d="M28,46 C28,31 72,31 72,46 C72,60 66,80 50,84 C34,80 28,60 28,46 Z" fill="#a58463"/>',
+    '<ellipse cx="33" cy="62" rx="4.2" ry="2.6" fill="#e59f8a" fill-opacity=".55"/><ellipse cx="67" cy="62" rx="4.2" ry="2.6" fill="#e59f8a" fill-opacity=".55"/>',
+    '<ellipse cx="50" cy="72" rx="11" ry="9" fill="#efe4d0"/><ellipse cx="50" cy="66" rx="4.2" ry="3" fill="#3b2c22"/>',
+    '<path d="M44,76 Q50,80 56,76" fill="none" stroke="#3b2c22" stroke-width="1.6" stroke-linecap="round"/>',
+    sprintf('<g class="eye" style="animation-delay:%ss"><ellipse cx="40" cy="52" rx="3.2" ry="3.7" fill="#2a1f18"/><circle cx="41" cy="50.7" r="1" fill="#fff"/></g>', delay),
+    sprintf('<g class="eye" style="animation-delay:%ss"><ellipse cx="60" cy="52" rx="3.2" ry="3.7" fill="#2a1f18"/><circle cx="61" cy="50.7" r="1" fill="#fff"/></g>', delay),
+    acc, '</g></svg>')
+}
+
 contacts_ui <- div(class = "ov",
   tags$h3(class = "sec", icon("address-book"), "Key contacts"),
   div(class = "people",
     lapply(list(
-      list("MC", "Mackenzie Clarke", "tmixʷ (Wildlife) Program Lead, ONA", "Project lead"),
-      list("LO", "Levi Oostenbrink", "ONA", "Trial coordination and updates"),
-      list("C",  "Caeley", "Provincial Wildlife Veterinarian", "Drug administration"),
-      list("MO", "Macus Ong", "Fisheries Biologist, ONA", "PIT tagging and data")),
-      function(x) div(class = "person", div(class = "av", x[[1]]), div(class = "nm", x[[2]]),
+      list("mackenzie", "Mackenzie Clarke", "tmixʷ (Wildlife) Program Lead, ONA", "Project lead"),
+      list("levi", "Levi Oostenbrink", "ONA", "Trial coordination and updates"),
+      list("caeley", "Caeley", "Provincial Wildlife Veterinarian", "Drug administration"),
+      list("macus", "Macus Ong", "Fisheries Biologist, ONA", "PIT tagging and data")),
+      function(x) div(class = "person", div(class = "av", HTML(avatar_svg(x[[1]]))), div(class = "nm", x[[2]]),
                       div(class = "rl", x[[3]]), span(class = "tg", x[[4]])))),
   tags$h3(class = "sec", icon("circle-question"), "Who to ask about what"),
   div(class = "who",
