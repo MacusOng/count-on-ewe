@@ -1,0 +1,10 @@
+Count on Ewe — scratch notes (not committed-critical)
+
+- Work dir: C:\Users\mong\OneDrive - Okanagan Nation Alliance\California Bighorn
+- GitHub: MacusOng/count-on-ewe (public)
+- shinyapps.io: macus-ong / count-on-ewe
+- Four independent pens, one treatment each, NO migration between pens.
+- Pen 1 (Fluralaner alone) + Pen 2 (Fluralaner + moxidectin) released eve of 2026-11-13.
+- TODO: fill data/tag_treatment.csv with the authoritative pen + treatment per tag.
+- TODO: add Pen 1 & 2 release coordinates when available (releases.csv / a map layer).
+- .xml P4 exports migrate to P5 in Dec 2026 — keep exporting csv/xlsx.

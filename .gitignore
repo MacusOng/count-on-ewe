@@ -1,0 +1,17 @@
+# Data: never committed, regardless of repo visibility
+/data/
+/data_public/
+
+# Generated outputs
+/outputs/plots/
+/outputs/tables/
+
+# R session / project cruft
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj.user
+
+# OS cruft
+.DS_Store
+Thumbs.db
