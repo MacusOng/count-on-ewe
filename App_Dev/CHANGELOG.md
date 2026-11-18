@@ -10,6 +10,15 @@ How to record a change (in this order):
 
 Entry types: Added, Changed, Fixed, Removed.
 
+## 0.8.0 - 2026-11-18
+- Added: **mobile beta**. On phones (up to 700 px wide) the page scrolls normally, the tabs become a
+  swipeable strip under the header, and a "Filters, clocks & settings" button opens the left panel
+  inline, with a "Show results" button at its end. KPI cards sit two across, tables are compact and
+  scroll sideways, chart toolbars are hidden so charts do not trap scrolling, and touch targets are larger.
+- Changed: the header notice now reads "Mobile version is now available in Beta mode", and the Overview
+  shows a short mobile-beta note on phones.
+- Changed: charts no longer show the zoom toolbar or capture drags (dragging a chart used to zoom it).
+
 ## 0.7.0 - 2026-11-17
 - Added: soft synthesized sounds (Web Audio, no files): a gentle tick on clicks and a two-note chime on
   tab changes. A "Soft sounds" switch in Settings turns them off; the choice is remembered per browser.

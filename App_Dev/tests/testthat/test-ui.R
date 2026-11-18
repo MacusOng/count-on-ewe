@@ -57,7 +57,17 @@ test_that("contacts use sheep avatars", {
 test_that("v0.7.0 UI changes", {
   html <- paste(as.character(ui), collapse = "")
   expect_false(grepl("Animate header", html, fixed = TRUE))
-  expect_true(grepl("Mobile version not available yet", html, fixed = TRUE))
+  expect_true(grepl("Mobile version is now available in Beta mode", html, fixed = TRUE))
   expect_true(grepl('id="ce-sound"', html, fixed = TRUE))
   expect_true(grepl("Wildlife) Biologist, ONA", html, fixed = TRUE))
+})
+
+test_that("v0.8.0 mobile beta pieces exist", {
+  html <- paste(as.character(ui), collapse = "")
+  expect_true(grepl("ce-mob-done", html, fixed = TRUE))
+  expect_true(grepl("ov-mobnote", html, fixed = TRUE))
+  expect_true(grepl("ce-kpis", html, fixed = TRUE))
+  expect_false(grepl("not available yet", html, fixed = TRUE))
+  expect_true(grepl("MOBILE", toupper("mobile")))  # sanity
+  expect_true(exists("MOBILE_JS"))
 })

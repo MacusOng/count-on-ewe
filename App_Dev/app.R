@@ -12,7 +12,7 @@
 #              data/manifest.csv. Nothing else to edit.
 # =============================================================================
 
-APP_VERSION <- "0.7.0"          # keep in sync with /VERSION and CHANGELOG.md
+APP_VERSION <- "0.8.0"          # keep in sync with /VERSION and CHANGELOG.md
 APP_STAGE   <- "beta"
 
 # Public mode: true on shinyapps.io (SHINY_PORT / R_CONFIG_ACTIVE=shinyapps) or when COE_PUBLIC=1.
@@ -456,7 +456,7 @@ banner_html <- function() {
   '<path class="h2" d="', hill_path(hill_front), '"/></svg>',
   '<div class="ce-fireflies">', FIREFLIES, '</div>',
   banner_animals(),
-  '<div class="ce-mobile-note">Mobile version not available yet</div>',
+  '<div class="ce-mobile-note">Mobile version is now available in Beta mode</div>',
   '<div class="ce-title"><h1>Count on Ewe</h1><span>PIT-tag counts &middot; California bighorn Psoroptes trial</span></div>',
   '</div>'))
 }
@@ -665,6 +665,63 @@ html[data-bs-theme=dark] .btn-close{filter:invert(1)}
 .ce-mobile-note{position:absolute;right:12px;top:8px;z-index:6;font-size:.72rem;font-weight:600;color:var(--ce-fg);background:color-mix(in srgb,var(--ce-card) 88%,transparent);border:1px solid var(--ce-border);border-radius:1rem;padding:.15rem .7rem;pointer-events:none}
 .ce-mobile-note:before{content:"\1F4F1\00a0"}
 @media (max-width:700px){.ce-mobile-note{left:18px;right:auto;top:auto;bottom:8px}}
+/* ---- mobile beta (v0.8.0) ---------------------------------------------------- */
+.ce-mob-filter,.ce-mob-only,.ov-mobnote{display:none}
+@media (max-width:700px){
+  html,body{height:auto!important;min-height:100%}
+  .bslib-page-navbar,body.bslib-page-navbar{height:auto!important;min-height:100vh;display:block!important;overflow:visible!important}
+  .bslib-sidebar-layout{height:auto!important;display:block!important;overflow:visible!important}
+  .bslib-sidebar-layout>.main{height:auto!important;overflow:visible!important;padding:.7rem .7rem 1.6rem!important}
+  .bslib-sidebar-layout>.sidebar{width:100%!important;max-width:100%!important;height:auto!important;position:static!important}
+  .bslib-sidebar-layout>.sidebar .sidebar-content{padding:.8rem!important}
+  .bslib-sidebar-layout>.collapse-toggle{position:absolute!important;left:-9999px!important;opacity:0;pointer-events:none}
+  .bslib-card,.card{height:auto!important;max-height:none!important;overflow:visible!important}
+  .bslib-card>.card-body{overflow:visible!important;height:auto!important;max-height:none!important}
+  .tab-content,.tab-pane{height:auto!important;overflow:visible!important}
+
+  .ce-banner{height:1.7in;min-height:160px}
+  .ce-title{top:8px}.ce-title h1{font-size:1.3rem}.ce-title span{display:none}
+  .ce-mobile-note{left:18px;right:auto;top:42px;bottom:auto;font-size:.68rem;max-width:calc(100% - 100px);white-space:normal;line-height:1.2;border-radius:.8rem}
+  .ce-orb.sun{right:6%;top:8px}.ce-orb.moon{right:8%;top:8px}
+
+  .navbar{position:sticky;top:0;z-index:1030;padding:0!important}
+  .navbar .container-fluid{padding:0!important;display:block}
+  .navbar .navbar-header,.navbar .navbar-toggle,.navbar .navbar-toggler,.navbar .navbar-brand,.navbar .navbar-text,.navbar .navbar-nav .flex-grow-1{display:none!important}
+  .navbar .navbar-collapse{display:block!important;visibility:visible!important;height:auto!important;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .navbar .navbar-collapse::-webkit-scrollbar{display:none}
+  .navbar .navbar-nav{display:flex!important;flex-direction:row!important;flex-wrap:nowrap;white-space:nowrap;margin:0!important;padding:0 .4rem}
+  .navbar .nav-item{flex:0 0 auto}
+  .navbar .nav-link{padding:.85rem .8rem!important;min-height:46px;display:flex;align-items:center;gap:.35rem;font-size:.9rem}
+
+  .ce-mob-filter{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;min-height:46px;border:0;border-bottom:1px solid var(--ce-border);background:var(--ce-primary);color:var(--ce-bg);font-weight:700;font-size:.92rem;font-family:inherit}
+  .ce-mob-only{display:block}
+  .ov-mobnote{display:flex;gap:.55rem;align-items:flex-start;background:color-mix(in srgb,var(--ce-accent) 16%,var(--ce-card));border:1px solid var(--ce-accent);border-radius:.8rem;padding:.6rem .8rem;font-size:.82rem;margin-bottom:.8rem}
+
+  .ce-kpis{grid-template-columns:1fr 1fr!important;gap:.6rem!important}
+  .ce-kpi{padding:.7rem .75rem}.ce-kpi .v{font-size:1.35rem}.ce-kpi .l{font-size:.74rem}
+  .ov{padding:0}.ov-stats{gap:.55rem}.ov-stat:last-child{grid-column:1/-1}
+  .ov h3.sec{margin-top:1.3rem;font-size:1rem}
+  .ppe{grid-template-columns:1fr}.people{grid-template-columns:1fr 1fr;gap:.6rem}.person{padding:.7rem .5rem}.person .av{width:76px;height:76px}
+  .ov-tl{-webkit-overflow-scrolling:touch}
+
+  .ce-sw{min-height:46px}.btn,.form-select,.form-control,.selectize-input{min-height:44px}
+  .form-check-input{width:1.35em;height:1.35em}.shiny-input-container .checkbox label,.shiny-input-container .radio label{padding:.15rem 0}
+  .irs--shiny .irs-handle{width:24px;height:24px;top:20px}
+  .dataTables_wrapper{font-size:.8rem}.dataTables_wrapper .dataTables_length{display:none}
+  .dataTables_wrapper .dataTables_filter{float:none;text-align:left}.dataTables_wrapper .dataTables_filter input{width:100%;margin:.2rem 0}
+  table.dataTable thead .form-control,table.dataTable thead input{padding:.15rem .3rem;font-size:.7rem;min-height:30px}
+  .dataTables_wrapper .dataTables_paginate{float:none;text-align:center}
+  .modal-dialog{margin:.8rem}
+  .bslib-sidebar-layout>.main,.bslib-sidebar-layout>.sidebar,.tab-content,.tab-pane,.card,.card-body,.bslib-card,.html-fill-container,.html-fill-item{min-width:0!important;max-width:100%}
+  .card-body .dataTables_wrapper,.card-body .shiny-table-output,.card-body .shiny-html-output,.card-body table{max-width:100%}
+  .card-body .dataTables_wrapper,.card-body .shiny-table-output{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .card-body table{display:block;overflow-x:auto;white-space:nowrap}
+  .bslib-sidebar-layout>.sidebar .sidebar-content{overflow:visible!important;height:auto!important;display:block!important}
+  .bslib-sidebar-layout>.sidebar .help-block{position:static!important;display:block;margin-bottom:.4rem}
+  #ce-mob-done{position:relative;z-index:2;clear:both}
+  .card-body,.html-fill-container{display:block!important;height:auto!important;flex:none!important}
+  .card-body .datatables,.card-body .dataTables_scroll,.card-body .dataTables_scrollBody{height:auto!important;max-height:none!important}
+}
 )---"
 
 CE_JS <- r"---(
@@ -756,6 +813,36 @@ SOUND_JS <- r"---(
   });
   document.addEventListener('DOMContentLoaded', function(){
     var cb = document.getElementById('ce-sound'); if (cb) cb.checked = isOn();
+  });
+})();
+)---"
+
+MOBILE_JS <- r"---(
+(function(){
+  function layout(){ return document.querySelector('.bslib-sidebar-layout'); }
+  function tog(){ var l = layout(); return l ? l.querySelector(':scope > .collapse-toggle') : null; }
+  function isOpen(){ var l = layout(); return !!l && !l.classList.contains('sidebar-collapsed'); }
+  function label(){
+    var b = document.getElementById('ce-mob-filter'); if (!b) return;
+    b.querySelector('.t').textContent = isOpen() ? 'Hide filters & settings' : 'Filters, clocks & settings';
+    b.setAttribute('aria-expanded', isOpen() ? 'true' : 'false');
+  }
+  function flip(){ var t = tog(); if (t) t.click(); setTimeout(label, 500); }
+  document.addEventListener('DOMContentLoaded', function(){
+    var nav = document.querySelector('nav.navbar'); if (!nav || !nav.parentNode) return;
+    var b = document.createElement('button');
+    b.type = 'button'; b.id = 'ce-mob-filter'; b.className = 'ce-mob-filter'; b.setAttribute('aria-expanded', 'false');
+    b.innerHTML = '<span aria-hidden="true">☰</span><span class="t">Filters, clocks & settings</span>';
+    nav.parentNode.insertBefore(b, nav.nextSibling);
+    b.addEventListener('click', flip);
+    var l = layout();
+    if (l && window.MutationObserver) new MutationObserver(label).observe(l, {attributes: true, attributeFilter: ['class']});
+    label();
+  });
+  document.addEventListener('click', function(e){
+    var d = e.target.closest && e.target.closest('#ce-mob-done'); if (!d) return;
+    if (isOpen()) { var t = tog(); if (t) t.click(); }
+    setTimeout(function(){ window.scrollTo({top: 0, behavior: 'smooth'}); label(); }, 450);
   });
 })();
 )---"
@@ -875,7 +962,8 @@ sidebar_ui <- sidebar(
   if (IS_PUBLIC) div(class = "small text-muted", "Data downloads are disabled on the public site.")
   else layout_columns(col_widths = c(6, 6),
     downloadButton("dl_events", "Tidy events (CSV)", class = "btn-sm btn-outline-primary w-100"),
-    downloadButton("dl_roster", "Tag roster (CSV)", class = "btn-sm btn-outline-primary w-100"))
+    downloadButton("dl_roster", "Tag roster (CSV)", class = "btn-sm btn-outline-primary w-100")),
+  tags$button(type = "button", id = "ce-mob-done", class = "btn btn-primary ce-mob-only w-100 mt-3", "Show results")
 )
 
 # =============================================================================
@@ -930,6 +1018,8 @@ PPE_STAGES <- list(
   c("Clean-up", "Dirty laundry bags; boots sprayed with tea tree"))
 
 overview_ui <- div(class = "ov",
+  div(class = "ov-mobnote", icon("mobile-screen"),
+      span(HTML(sprintf("<b>Mobile beta</b> (v%s). Tap <i>Filters, clocks &amp; settings</i> to change filters. Tables scroll sideways.", APP_VERSION)))),
   tags$h3(class = "sec", icon("binoculars"), "The trial at a glance"),
   div(class = "ov-stats",
     ov_stat("~36", "Psoroptes-infested sheep in the captive trial"),
@@ -1047,7 +1137,7 @@ ui <- page_navbar(
       tags$script(HTML(sprintf("window.CE_THEMES=%s;window.CE_FONTS=%s;window.CE_DEFAULT_THEME='%s';window.CE_DEFAULT_FONT='%s';",
         jsonlite::toJSON(unname(THEMES), auto_unbox = TRUE), jsonlite::toJSON(FONTS, auto_unbox = TRUE),
         DEFAULT_THEME, DEFAULT_FONT))),
-      tags$script(HTML(CE_JS)), tags$script(HTML(CLOCK_JS)), tags$script(HTML(SOUND_JS)),
+      tags$script(HTML(CE_JS)), tags$script(HTML(CLOCK_JS)), tags$script(HTML(SOUND_JS)), tags$script(HTML(MOBILE_JS)),
       tags$style(HTML(CE_CSS)), tags$style(HTML(banner_css))),
     banner_html()),
   nav_spacer(),
@@ -1056,7 +1146,7 @@ ui <- page_navbar(
   nav_panel("Overview", icon = icon("house"), overview_ui),
 
   nav_panel("Dashboard", icon = icon("chart-line"),
-    layout_columns(col_widths = c(3,3,3,3), fill = FALSE,
+    layout_columns(class = "ce-kpis", col_widths = c(3,3,3,3), fill = FALSE,
       uiOutput("k_tags"), uiOutput("k_sessions"), uiOutput("k_latest"), uiOutput("k_qc")),
     card(card_header("Detections per session"), plotlyOutput("p_session", height = 300)),
     layout_columns(col_widths = c(7,5),
@@ -1143,8 +1233,9 @@ server <- function(input, output, session) {
   })
   style_plotly <- function(p) {
     v <- th()$vars
-    p |> layout(paper_bgcolor = "rgba(0,0,0,0)", plot_bgcolor = "rgba(0,0,0,0)",
-                font = list(color = v$fg, family = fnt()), legend = list(orientation = "h"))
+    p |> layout(paper_bgcolor = "rgba(0,0,0,0)", plot_bgcolor = "rgba(0,0,0,0)", dragmode = FALSE,
+                font = list(color = v$fg, family = fnt()), legend = list(orientation = "h")) |>
+      config(displayModeBar = FALSE)
   }
 
   output$k_tags     <- renderUI(kpi(n_distinct(filt()$tag), sprintf("Tags in current filter (of %d)", n_distinct(ev$tag))))
