@@ -12,7 +12,7 @@
 #              data/manifest.csv. Nothing else to edit.
 # =============================================================================
 
-APP_VERSION <- "0.8.0"          # keep in sync with /VERSION and CHANGELOG.md
+APP_VERSION <- "0.9.0"          # keep in sync with /VERSION and CHANGELOG.md
 APP_STAGE   <- "beta"
 
 # Public mode: true on shinyapps.io (SHINY_PORT / R_CONFIG_ACTIVE=shinyapps) or when COE_PUBLIC=1.
@@ -333,7 +333,7 @@ THEME_LIST <- list(
     mark = "#ffe600", recap = "#00e5ff", none = "#666666")
 )
 THEMES        <- setNames(THEME_LIST, vapply(THEME_LIST, `[[`, "", "id"))
-DEFAULT_THEME <- "calm"
+DEFAULT_THEME <- "dark"
 
 FONTS <- data.frame(
   id = c("inter","nunito","poppins","atkinson","merriweather","lora","playfair","robotoslab","firacode","patrick"),
@@ -730,14 +730,14 @@ CE_JS <- r"---(
   try { store = window.localStorage; } catch(e) { store = {}; }
   function get(k, d){ try { return store.getItem(k) || d; } catch(e){ return d; } }
   function put(k, v){ try { store.setItem(k, v); } catch(e){} }
-  var cur = {theme: get('ce_theme', window.CE_DEFAULT_THEME), font: get('ce_font', window.CE_DEFAULT_FONT), anim: 'on'};
+  var cur = {theme: get('ce_theme2', window.CE_DEFAULT_THEME), font: get('ce_font', window.CE_DEFAULT_FONT), anim: 'on'};
   function byId(arr, id){ for (var i=0;i<arr.length;i++) if (arr[i].id===id) return arr[i]; return arr[0]; }
   function applyTheme(id, fromUser){
     var t = byId(T, id), r = document.documentElement;
     Object.keys(t.vars).forEach(function(k){ r.style.setProperty('--ce-'+k, t.vars[k]); });
     r.setAttribute('data-sky', t.sky); r.setAttribute('data-bs-theme', t.mode); r.setAttribute('data-ce-theme', t.id);
     document.querySelectorAll('.ce-sw').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-id')===t.id); });
-    cur.theme = t.id; put('ce_theme', t.id); sync('theme_id', t.id);
+    cur.theme = t.id; put('ce_theme2', t.id); sync('theme_id', t.id);
   }
   function applyFont(id){
     var f = byId(F, id), r = document.documentElement;

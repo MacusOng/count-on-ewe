@@ -10,6 +10,10 @@ How to record a change (in this order):
 
 Entry types: Added, Changed, Fixed, Removed.
 
+## 0.9.0 - 2026-11-18
+- Changed: the app now starts in Midnight Dark by default. A theme picked in Settings is still remembered
+  on that device. The saved-theme key changed, so everyone sees dark once on their next visit.
+
 ## 0.8.0 - 2026-11-18
 - Added: **mobile beta**. On phones (up to 700 px wide) the page scrolls normally, the tabs become a
   swipeable strip under the header, and a "Filters, clocks & settings" button opens the left panel
