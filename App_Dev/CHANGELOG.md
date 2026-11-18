@@ -10,6 +10,10 @@ How to record a change (in this order):
 
 Entry types: Added, Changed, Fixed, Removed.
 
+## 0.10.0 - 2026-11-18
+- Fixed: on phones the "Filters, clocks & settings" panel opened at the bottom of the page. It now opens
+  directly under its button, and the page scrolls to it.
+
 ## 0.9.0 - 2026-11-18
 - Changed: the app now starts in Midnight Dark by default. A theme picked in Settings is still remembered
   on that device. The saved-theme key changed, so everyone sees dark once on their next visit.

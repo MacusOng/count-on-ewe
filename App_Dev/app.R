@@ -12,7 +12,7 @@
 #              data/manifest.csv. Nothing else to edit.
 # =============================================================================
 
-APP_VERSION <- "0.9.0"          # keep in sync with /VERSION and CHANGELOG.md
+APP_VERSION <- "0.10.0"          # keep in sync with /VERSION and CHANGELOG.md
 APP_STAGE   <- "beta"
 
 # Public mode: true on shinyapps.io (SHINY_PORT / R_CONFIG_ACTIVE=shinyapps) or when COE_PUBLIC=1.
@@ -670,7 +670,9 @@ html[data-bs-theme=dark] .btn-close{filter:invert(1)}
 @media (max-width:700px){
   html,body{height:auto!important;min-height:100%}
   .bslib-page-navbar,body.bslib-page-navbar{height:auto!important;min-height:100vh;display:block!important;overflow:visible!important}
-  .bslib-sidebar-layout{height:auto!important;display:block!important;overflow:visible!important}
+  .bslib-sidebar-layout{height:auto!important;display:flex!important;flex-direction:column!important;overflow:visible!important}
+  .bslib-sidebar-layout>.sidebar{order:-1!important}
+  .bslib-sidebar-layout>.main{order:1!important}
   .bslib-sidebar-layout>.main{height:auto!important;overflow:visible!important;padding:.7rem .7rem 1.6rem!important}
   .bslib-sidebar-layout>.sidebar{width:100%!important;max-width:100%!important;height:auto!important;position:static!important}
   .bslib-sidebar-layout>.sidebar .sidebar-content{padding:.8rem!important}
@@ -827,7 +829,9 @@ MOBILE_JS <- r"---(
     b.querySelector('.t').textContent = isOpen() ? 'Hide filters & settings' : 'Filters, clocks & settings';
     b.setAttribute('aria-expanded', isOpen() ? 'true' : 'false');
   }
-  function flip(){ var t = tog(); if (t) t.click(); setTimeout(label, 500); }
+  function flip(){ var t = tog(); if (t) t.click();
+    setTimeout(function(){ label(); if (isOpen()) { var sb = document.querySelector('.bslib-sidebar-layout > .sidebar'); var nb = document.getElementById('ce-mob-filter');
+      if (nb) window.scrollTo({top: nb.getBoundingClientRect().bottom + window.scrollY - 52, behavior: 'smooth'}); } }, 500); }
   document.addEventListener('DOMContentLoaded', function(){
     var nav = document.querySelector('nav.navbar'); if (!nav || !nav.parentNode) return;
     var b = document.createElement('button');
